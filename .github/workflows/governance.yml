@@ -25,3 +25,5 @@ jobs:
           persist-credentials: false
       - name: Validate contracts and traceability
         run: python3 scripts/validate_quality_system.py
+      - name: Test fail-closed governance validation
+        run: python3 -m unittest scripts/test_validate_quality_system.py

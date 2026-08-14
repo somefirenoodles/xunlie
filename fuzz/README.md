@@ -8,6 +8,10 @@ Successful compilations must also satisfy three invariants:
 2. canonical output is valid JSON;
 3. decoding into the typed `ContractIr` and canonicalizing it again is byte-for-byte stable.
 
+`certified_variant` exercises deserialization, canonical round-trip and integrity validation of
+hostile `CertifiedVariant` bundles. It deliberately does not claim baseline equivalence: that
+property requires an external history and is covered by deterministic replay tests.
+
 The fuzz package is an independent workspace because `cargo-fuzz`/libFuzzer require nightly,
 while product builds remain on the stable toolchain pinned in `rust-toolchain.toml`. Dependencies
 are exact-versioned and `fuzz/Cargo.lock` is committed for reproducibility.
@@ -20,6 +24,7 @@ Install the same dated nightly and runner used by CI:
 rustup toolchain install nightly-2026-08-01 --profile minimal
 cargo +nightly-2026-08-01 install cargo-fuzz --version 0.13.2 --locked
 cargo +nightly-2026-08-01 fuzz run source_parser -- -max_total_time=60
+cargo +nightly-2026-08-01 fuzz run certified_variant -- -max_total_time=60
 ```
 
 For a bounded smoke run equivalent to CI, replace `60` with `30`. An unbounded local campaign can

@@ -1,4 +1,5 @@
-# A second independent CODEOWNER is required before G0/G5 can claim independence.
+# GitHub ownership remains human; technical gate independence is recorded by the
+# orchestrated reviewer protocol in quality/roles.json and ADR-0004.
 * @somefirenoodles
 /docs/architecture/ @somefirenoodles
 /quality/ @somefirenoodles

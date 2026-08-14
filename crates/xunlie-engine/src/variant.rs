@@ -244,6 +244,10 @@ impl CertifiedVariant {
     }
 
     /// Validates container integrity and recompiles its transformed history.
+    ///
+    /// This method cannot prove equivalence to an external baseline because the baseline is not an
+    /// argument. Call [`verify_certified_variant`] or
+    /// [`verify_certified_variant_with_operator`] before trusting the equivalence claim.
     pub fn validate(&self) -> Result<(), VariantError> {
         if self.schema_version != CERTIFIED_VARIANT_SCHEMA_VERSION {
             return Err(VariantError::new(
@@ -998,6 +1002,49 @@ mod tests {
 
         let error = verify_certified_variant(baseline, &tampered).unwrap_err();
         assert_eq!(error.code(), "XUNLIE-VARIANT-DIGEST-MISMATCH");
+    }
+
+    #[test]
+    fn integrity_validation_is_not_baseline_equivalence_verification() {
+        let baseline = source(PRETTY_SOURCE);
+        let original = certified(
+            generate_certified_variant(baseline.clone(), &JsonNormalizationOperator).unwrap(),
+        );
+        let after = original.certificate.after().clone();
+        let invented_before = CertifiedHistory {
+            history_digest: Sha256Digest::of_bytes("invented-baseline-history"),
+            content_digest: after.content_digest.clone(),
+            artifact_digest: Sha256Digest::of_bytes("invented-baseline-artifact"),
+        };
+        let certificate = EquivalenceCertificate::new(
+            Producer {
+                name: "xunlie-engine".to_owned(),
+                version: env!("CARGO_PKG_VERSION").to_owned(),
+            },
+            original.certificate.operator().clone(),
+            original.certificate.preconditions().to_vec(),
+            invented_before,
+            after,
+        )
+        .unwrap();
+        let mut self_consistent = original;
+        self_consistent.certificate = certificate;
+        self_consistent.content_digest = certified_variant_digest(
+            &self_consistent.schema_version,
+            &self_consistent.producer,
+            self_consistent.created_at.as_deref(),
+            &self_consistent.sources,
+            &self_consistent.certificate,
+        )
+        .unwrap();
+
+        self_consistent.validate().unwrap();
+        assert_eq!(
+            verify_certified_variant(baseline, &self_consistent)
+                .unwrap_err()
+                .code(),
+            "XUNLIE-VARIANT-REPLAY-MISMATCH"
+        );
     }
 
     #[test]

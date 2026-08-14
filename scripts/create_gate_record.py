@@ -29,7 +29,17 @@ def main() -> int:
         "planVersion": stages["planVersion"],
         "gateId": args.gate,
         "candidate": args.candidate,
+        "pullRequest": None,
         "decision": "BLOCKED",
+        "author": None,
+        "criticalChange": False,
+        "approvalMode": "orchestrated-agent-review/v1",
+        "reviewers": [],
+        "requirements": [],
+        "risks": [],
+        "residualRisks": [],
+        "tools": [],
+        "externalEvidence": [],
         "controls": [
             {"id": control_id, "result": "BLOCKED", "evidence": ["REPLACE-WITH-EVIDENCE-PATH"], "reason": "Not evaluated"}
             for control_id in stage["requiredControls"]
@@ -50,4 +60,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

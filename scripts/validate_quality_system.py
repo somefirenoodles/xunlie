@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
@@ -82,15 +83,193 @@ def check_acyclic(components: dict[str, dict[str, Any]]) -> None:
         visit(component_id, [])
 
 
-def safe_evidence_path(relative: str, record: str) -> None:
+def safe_evidence_path(relative: str, record: str) -> Path | None:
     candidate = (ROOT / relative).resolve()
     try:
         candidate.relative_to(ROOT)
     except ValueError:
         error(f"{record}: evidence path escapes repository: {relative}")
-        return
-    if not candidate.exists():
+        return None
+    if not candidate.is_file():
         error(f"{record}: evidence path does not exist: {relative}")
+        return None
+    return candidate
+
+
+def validate_review_quorum(record: dict[str, Any], record_id: str, roles_doc: dict[str, Any]) -> None:
+    positive = record.get("decision") in {"GO", "MERGE", "RC", "RELEASE", "CONTINUE", "RETIRE"}
+    if not positive:
+        return
+
+    protocol = roles_doc.get("reviewProtocol", {})
+    if record.get("approvalMode") != "orchestrated-agent-review/v1":
+        error(f"{record_id}: positive decision requires orchestrated-agent-review/v1")
+    if protocol.get("schemaVersion") != "xunlie.review-orchestration/v1":
+        error(f"{record_id}: review orchestration protocol is missing or unsupported")
+        return
+    if record.get("approver") != "orchestrated-review-quorum":
+        error(f"{record_id}: approver must identify the orchestrated review quorum")
+
+    candidate = record.get("candidate")
+    if not isinstance(candidate, str) or not re.fullmatch(r"[^@\s]+@[0-9a-f]{40}", candidate):
+        error(f"{record_id}: positive decision requires repository@40-hex candidate")
+
+    created_at = record.get("createdAt")
+    if not isinstance(created_at, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", created_at):
+        error(f"{record_id}: positive decision requires createdAt in UTC with second precision")
+
+    author = record.get("author")
+    if not isinstance(author, str) or not author:
+        error(f"{record_id}: positive decision requires an author instance")
+
+    reviewers = record.get("reviewers")
+    if not isinstance(reviewers, list):
+        error(f"{record_id}: positive decision requires a reviewer list")
+        return
+    minimum_key = "criticalChangeReviewers" if record.get("criticalChange") is True else "minimumIndependentReviewers"
+    minimum = protocol.get(minimum_key)
+    if not isinstance(minimum, int) or minimum < 1:
+        error(f"roles.reviewProtocol.{minimum_key}: must be a positive integer")
+        return
+    if len(reviewers) < minimum:
+        error(f"{record_id}: reviewer quorum {len(reviewers)} is below required {minimum}")
+
+    reviewer_ids: set[str] = set()
+    for position, reviewer in enumerate(reviewers):
+        context = f"{record_id}.reviewers[{position}]"
+        if not isinstance(reviewer, dict):
+            error(f"{context}: reviewer must be an object")
+            continue
+        reviewer_id = reviewer.get("reviewerId")
+        if not isinstance(reviewer_id, str) or not reviewer_id:
+            error(f"{context}: reviewerId is required")
+        elif reviewer_id == author:
+            error(f"{context}: author cannot review its own candidate")
+        elif reviewer_id in reviewer_ids:
+            error(f"{context}: duplicate reviewerId {reviewer_id}")
+        else:
+            reviewer_ids.add(reviewer_id)
+        for field in ("task", "scope", "timestamp"):
+            if not isinstance(reviewer.get(field), str) or not reviewer[field].strip():
+                error(f"{context}: {field} is required")
+        timestamp = reviewer.get("timestamp")
+        if isinstance(timestamp, str) and not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", timestamp):
+            error(f"{context}: timestamp must be UTC with second precision")
+        elif isinstance(timestamp, str) and isinstance(created_at, str) and timestamp > created_at:
+            error(f"{context}: review cannot occur after GateRecord creation")
+        if reviewer.get("candidate") != record.get("candidate"):
+            error(f"{context}: reviewer candidate differs from GateRecord candidate")
+        if reviewer.get("verdict") != "GO":
+            error(f"{context}: positive GateRecord requires unanimous GO")
+        commands = reviewer.get("commands")
+        if not isinstance(commands, list) or not commands or not all(isinstance(item, str) and item for item in commands):
+            error(f"{context}: commands must be a non-empty string list")
+        findings = reviewer.get("findings")
+        if not isinstance(findings, list):
+            error(f"{context}: findings must be a list")
+        else:
+            for finding in findings:
+                if not isinstance(finding, dict):
+                    error(f"{context}: each finding must be an object")
+                    continue
+                if finding.get("severity") in {"critical", "high"} and finding.get("status") != "closed":
+                    error(f"{context}: open blocking finding {finding.get('id', '<unknown>')}")
+
+        evidence = reviewer.get("evidence")
+        evidence_digest = reviewer.get("evidenceSha256")
+        if not isinstance(evidence, str) or not evidence:
+            error(f"{context}: evidence path is required")
+            continue
+        evidence_path = safe_evidence_path(evidence, context)
+        if not isinstance(evidence_digest, str) or not re.fullmatch(r"sha256:[0-9a-f]{64}", evidence_digest):
+            error(f"{context}: evidenceSha256 must be a lowercase SHA-256 digest")
+        elif evidence_path is not None:
+            actual = "sha256:" + hashlib.sha256(evidence_path.read_bytes()).hexdigest()
+            if actual != evidence_digest:
+                error(f"{context}: evidence digest mismatch")
+
+
+def validate_gate_metadata(
+    record: dict[str, Any],
+    record_id: str,
+    requirement_ids: set[str],
+    risk_ids: set[str],
+    tool_ids: set[str],
+) -> None:
+    positive = record.get("decision") in {"GO", "MERGE", "RC", "RELEASE", "CONTINUE", "RETIRE"}
+    if not positive:
+        return
+
+    pull_request = record.get("pullRequest")
+    if not isinstance(pull_request, str) or not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/[0-9]+", pull_request):
+        error(f"{record_id}: positive decision requires a canonical GitHub pull request URL")
+
+    require_refs(record.get("requirements"), requirement_ids, f"{record_id}.requirements")
+    require_refs(record.get("risks"), risk_ids, f"{record_id}.risks")
+
+    residual_risks = record.get("residualRisks")
+    residual_ids: set[str] = set()
+    if not isinstance(residual_risks, list) or not residual_risks:
+        error(f"{record_id}: residualRisks must be a non-empty list")
+    else:
+        for position, residual in enumerate(residual_risks):
+            context = f"{record_id}.residualRisks[{position}]"
+            if not isinstance(residual, dict):
+                error(f"{context}: residual risk must be an object")
+                continue
+            risk_id = residual.get("id")
+            if risk_id not in risk_ids:
+                error(f"{context}: unknown risk {risk_id!r}")
+            elif risk_id in residual_ids:
+                error(f"{context}: duplicate risk {risk_id}")
+            else:
+                residual_ids.add(risk_id)
+            if residual.get("disposition") not in {"bounded", "deferred", "accepted", "mitigated"}:
+                error(f"{context}: invalid disposition")
+            if not isinstance(residual.get("rationale"), str) or not residual["rationale"].strip():
+                error(f"{context}: rationale is required")
+    declared_risks = set(record.get("risks", [])) if isinstance(record.get("risks"), list) else set()
+    if residual_ids != declared_risks:
+        error(f"{record_id}: residualRisks must decide every declared risk exactly once")
+
+    used_tools = record.get("tools")
+    if not isinstance(used_tools, list) or not used_tools:
+        error(f"{record_id}: tools must be a non-empty list")
+    else:
+        seen_tools: set[str] = set()
+        for position, tool in enumerate(used_tools):
+            context = f"{record_id}.tools[{position}]"
+            if not isinstance(tool, dict):
+                error(f"{context}: tool must be an object")
+                continue
+            tool_id = tool.get("id")
+            if tool_id not in tool_ids:
+                error(f"{context}: unknown tool {tool_id!r}")
+            elif tool_id in seen_tools:
+                error(f"{context}: duplicate tool {tool_id}")
+            else:
+                seen_tools.add(tool_id)
+            if not isinstance(tool.get("version"), str) or not tool["version"].strip():
+                error(f"{context}: exact version is required")
+
+    external_evidence = record.get("externalEvidence")
+    if not isinstance(external_evidence, list) or not external_evidence:
+        error(f"{record_id}: externalEvidence must be a non-empty list")
+    else:
+        for position, item in enumerate(external_evidence):
+            context = f"{record_id}.externalEvidence[{position}]"
+            if not isinstance(item, dict):
+                error(f"{context}: item must be an object")
+                continue
+            if not isinstance(item.get("name"), str) or not item["name"].strip():
+                error(f"{context}: name is required")
+            if not isinstance(item.get("url"), str) or not item["url"].startswith("https://"):
+                error(f"{context}: HTTPS URL is required")
+            integrity = item.get("integrity")
+            if not isinstance(integrity, str) or not re.fullmatch(
+                r"(?:sha256:[0-9a-f]{64}|github-actions-head:[0-9a-f]{40})", integrity
+            ):
+                error(f"{context}: integrity must bind a SHA-256 digest or Actions head SHA")
 
 
 def main() -> int:
@@ -201,6 +380,33 @@ def main() -> int:
     required_assignments = [item for item in roles_doc.get("roles", []) if item.get("requiredForG0")]
     if any(not item.get("assignee") for item in required_assignments):
         error("roles: every role required for G0 must have an operational assignee")
+    if roles_doc.get("independenceFeasible") is True:
+        protocol = roles_doc.get("reviewProtocol", {})
+        required_protocol_fields = {
+            "schemaVersion",
+            "minimumIndependentReviewers",
+            "criticalChangeReviewers",
+            "frozenCandidateRequired",
+            "reviewerMayModifyCandidate",
+            "unanimousPositiveDecisionRequired",
+            "blockingSeverities",
+            "requiredEvidence",
+        }
+        if not isinstance(protocol, dict) or not required_protocol_fields.issubset(protocol):
+            error("roles: independenceFeasible requires a complete reviewProtocol")
+        elif (
+            type(protocol.get("minimumIndependentReviewers")) is not int
+            or protocol.get("minimumIndependentReviewers", 0) < 1
+            or type(protocol.get("criticalChangeReviewers")) is not int
+            or protocol.get("criticalChangeReviewers", 0) < 2
+            or protocol.get("frozenCandidateRequired") is not True
+            or protocol.get("reviewerMayModifyCandidate") is not False
+            or protocol.get("unanimousPositiveDecisionRequired") is not True
+            or set(protocol.get("blockingSeverities", [])) != {"critical", "high"}
+            or set(protocol.get("requiredEvidence", []))
+            != {"reviewerId", "task", "scope", "candidate", "verdict", "commands", "findings", "timestamp"}
+        ):
+            error("roles: reviewProtocol must freeze candidates and fail closed")
 
     for decision_id, decision in decisions.items():
         if decision.get("status") not in {"open", "accepted", "rejected", "superseded"}:
@@ -260,6 +466,8 @@ def main() -> int:
             error(f"{record_id}: positive decision with non-passing controls")
         if all_pass and not record.get("approver"):
             error(f"{record_id}: passing record requires an approver")
+        validate_review_quorum(record, record_id, roles_doc)
+        validate_gate_metadata(record, record_id, set(requirements), set(risks), set(tools))
         open_blockers = [d for d in decisions.values() if d.get("status") == "open" and gate_id in d.get("blocks", [])]
         if open_blockers and decision in {"GO", "MERGE", "RC", "RELEASE", "CONTINUE", "RETIRE"}:
             error(f"{record_id}: positive decision while blocking decisions remain open")

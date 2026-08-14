@@ -68,7 +68,7 @@ jobs:
           name: xunlie-lcov
           path: coverage/lcov.info
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 90
 
   fuzz-smoke:
     name: fuzz-source-parser
@@ -90,6 +90,10 @@ jobs:
       - name: Fuzz source parser
         run: >-
           cargo +nightly-2026-08-01 fuzz run source_parser
+          -- -max_total_time=30 -rss_limit_mb=2048
+      - name: Fuzz certified variant bundles
+        run: >-
+          cargo +nightly-2026-08-01 fuzz run certified_variant
           -- -max_total_time=30 -rss_limit_mb=2048
 
   mutation-variants:
@@ -115,4 +119,4 @@ jobs:
           name: xunlie-variant-mutation-report
           path: mutants.out
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 90

@@ -38,7 +38,7 @@
 | Prompt/log conserva secreto | divulgación | minimización, redacción, retención, no telemetry default | TEST-REDACTION |
 | Drift de modelo cambia baseline | comparación inválida | identidad/versiones, repetición, distribución, replay | TEST-REPLAY-CROSS |
 | Fallo parcial se vuelve PASS | release incorrecta | estados tipados y fail closed | TEST-CHAOS-FAILCLOSED |
-| Maintainer elude controles | supply chain/gobierno | rulesets, dos personas, logs y break-glass | TEST-AUDIT-RECONSTRUCT |
+| Maintainer elude controles | supply chain/gobierno | rulesets, revisores separados, logs y break-glass | TEST-AUDIT-RECONSTRUCT |
 
 ## Supuestos por validar
 
@@ -50,4 +50,3 @@
 ## Criterio G2
 
 Cerrar DEC-005 a DEC-008, asignar dueño nominal, probar cada amenaza crítica y aceptar riesgo residual. Este borrador no satisface por sí solo `CTRL-SEC-004`.
-

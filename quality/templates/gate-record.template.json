@@ -4,10 +4,20 @@
   "planVersion": "0.1.0",
   "gateId": "G3",
   "candidate": "git-sha-or-release-digest",
+  "pullRequest": null,
   "decision": "BLOCKED",
+  "author": null,
+  "criticalChange": false,
+  "approvalMode": "orchestrated-agent-review/v1",
+  "reviewers": [],
+  "requirements": [],
+  "risks": [],
+  "residualRisks": [],
+  "tools": [],
+  "externalEvidence": [],
   "controls": [],
   "waivers": [],
   "approver": null,
+  "createdAt": null,
   "note": "Generate the stage-specific control list with scripts/create_gate_record.py."
 }
-

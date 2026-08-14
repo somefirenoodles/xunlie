@@ -24,7 +24,7 @@
       "id": "G3",
       "name": "Construction increment",
       "allowedDecisions": ["MERGE", "BLOCKED"],
-      "requiredControls": ["CTRL-REQ-001", "CTRL-ARCH-001", "CTRL-ARCH-002", "CTRL-CODE-001", "CTRL-TEST-001", "CTRL-TEST-002", "CTRL-SEC-001", "CTRL-SEC-002", "CTRL-SC-001", "CTRL-COMP-001", "CTRL-DOC-001"]
+      "requiredControls": ["CTRL-REQ-001", "CTRL-ARCH-001", "CTRL-ARCH-002", "CTRL-CODE-001", "CTRL-TEST-001", "CTRL-TEST-002", "CTRL-TEST-003", "CTRL-SEC-001", "CTRL-SEC-002", "CTRL-SC-001", "CTRL-COMP-001", "CTRL-DOC-001"]
     },
     {
       "id": "G4",

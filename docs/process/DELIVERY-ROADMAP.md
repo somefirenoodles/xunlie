@@ -31,7 +31,8 @@ Gate: G3 + revisión dirigida de RISK-001/RISK-002.
 
 Estado del corte vertical: implementado. Incluye dos operadores deterministas, certificado v1,
 replay independiente, exclusiones explicadas, vector golden, propiedades metamórficas y campaña de
-mutación dirigida. La aprobación formal G3 continúa requiriendo un revisor independiente.
+mutación dirigida. La aprobación formal G3 se ejecuta mediante el quorum de revisores-agente
+independientes definido en ADR-0004.
 
 ## M3 — Protocolo y ejecución aislada (3–4 semanas)
 
@@ -76,4 +77,8 @@ Primero se construyen los mecanismos que pueden demostrar falsedad: resolvedor, 
 
 ## Estimación de capacidad
 
-Equipo mínimo razonable: 2 desarrolladores Rust/sistemas, 1 Quality/SDET con propiedades/fuzzing, participación de Architect/Security y Product. En un equipo menor, mantener al menos dos personas para independencia; si una sola persona construye, un revisor externo debe aprobar gates críticos.
+Capacidad objetivo para una operación humana a escala: 2 desarrolladores Rust/sistemas, 1
+Quality/SDET con propiedades/fuzzing y participación de Architecture, Security y Product. En el
+modo inicial, esas funciones se separan mediante instancias autoras y revisoras orquestadas; la
+identidad humana adicional es una defensa organizacional futura, no un prerrequisito para la
+independencia técnica definida en ADR-0004.

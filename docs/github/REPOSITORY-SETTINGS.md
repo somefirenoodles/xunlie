@@ -55,13 +55,15 @@ workflow valida además SemVer, coincidencia con la versión del workspace y per
 Los binarios se publican con checksums SHA-256 y build provenance. No se declara firma nativa de
 binarios ni reproducibilidad bit a bit hasta disponer de un segundo constructor independiente.
 
-## Límite de independencia
+## Independencia técnica y límite de GitHub
 
-El repositorio tiene una sola identidad operativa. Por ello el ruleset exige cero aprobaciones: una
-autoaprobación no aportaría independencia real. `DEC-011` mantiene bloqueada la afirmación de un
-gate independiente hasta incorporar un segundo maintainer o auditor.
+El repositorio tiene una sola identidad de GitHub, por lo que el ruleset exige cero aprobaciones:
+una autoaprobación remota no aportaría separación. La independencia técnica de los gates se aplica
+en cambio mediante `xunlie.review-orchestration/v1`: instancias revisoras separadas, sin autoría ni
+escritura, examinan un SHA congelado y sus veredictos se conservan como evidencia del PR y del
+GateRecord. GitHub hace cumplir los checks; el protocolo hace revisable la decisión.
 
-Cuando exista esa capacidad, la elevación prevista es:
+Si se incorpora una segunda identidad humana, la elevación prevista es:
 
 - una aprobación general y dos para dominio, seguridad, workflows, arquitectura y release;
 - CODEOWNERS y aprobación del último push por una persona distinta;

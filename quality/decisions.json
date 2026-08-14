@@ -5,13 +5,13 @@
     {"id": "DEC-001", "topic": "GitHub owner", "status": "accepted", "recommendation": "Use the personal account somefirenoodles.", "resolution": "somefirenoodles", "blocks": []},
     {"id": "DEC-002", "topic": "Repository visibility", "status": "accepted", "recommendation": "Public repository.", "resolution": "public", "blocks": []},
     {"id": "DEC-003", "topic": "License", "status": "accepted", "recommendation": "MIT for the initial public release.", "resolution": "MIT", "blocks": []},
-    {"id": "DEC-004", "topic": "Operational role assignment", "status": "accepted", "recommendation": "OpenAI Codex executes all operational roles; repository owner remains somefirenoodles.", "resolution": "solo-agent-assisted operating model", "blocks": []},
+    {"id": "DEC-004", "topic": "Operational role assignment", "status": "accepted", "recommendation": "OpenAI Codex orchestrates operational roles through separate author and reviewer agent instances; repository owner remains somefirenoodles.", "resolution": "orchestrated-multi-agent operating model", "blocks": []},
     {"id": "DEC-005", "topic": "Supported platforms", "status": "open", "recommendation": "Linux x86_64 primary; macOS arm64 and Windows x86_64 for CLI and replay.", "blocks": ["G1", "G2"]},
     {"id": "DEC-006", "topic": "First production agent adapter", "status": "open", "recommendation": "Use the pilot team's real agent behind the generic protocol.", "blocks": ["G2"]},
     {"id": "DEC-007", "topic": "Telemetry", "status": "open", "recommendation": "Off/local by default; opt-in redacted OpenTelemetry export.", "blocks": ["G2"]},
     {"id": "DEC-008", "topic": "Retention", "status": "open", "recommendation": "Release lifetime plus 24 months; PR evidence 90 days.", "blocks": ["G2"]},
     {"id": "DEC-009", "topic": "Public compatibility window", "status": "open", "recommendation": "Read N-1 bundles from first beta.", "blocks": ["G2"]},
     {"id": "DEC-010", "topic": "Distribution channels", "status": "open", "recommendation": "GitHub Releases binaries and OCI image first.", "blocks": ["G2", "G5"]},
-    {"id": "DEC-011", "topic": "Independent approval", "status": "open", "recommendation": "Add a second human maintainer or qualified external reviewer before claiming independent G0/G5 approval.", "blocks": ["G0", "G5"]}
+    {"id": "DEC-011", "topic": "Independent approval", "status": "accepted", "recommendation": "Use separately tasked, non-authoring reviewer agent instances over a frozen candidate, require reproducible evidence and unanimous fail-closed verdicts, and retain human ownership for legal or business risk acceptance.", "resolution": "orchestrated-agent-review/v1", "blocks": []}
   ]
 }

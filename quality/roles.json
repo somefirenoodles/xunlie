@@ -2,21 +2,32 @@
   "schemaVersion": "xunlie.quality.roles/v1",
   "baselineVersion": "0.1.0",
   "repositoryOwner": "somefirenoodles",
-  "operatingModel": "solo-agent-assisted",
-  "independenceFeasible": false,
+  "operatingModel": "orchestrated-multi-agent",
+  "independenceFeasible": true,
   "roles": [
     {"role": "Product Owner", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
     {"role": "Chief Architect", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
     {"role": "Quality Lead", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
     {"role": "Security Lead", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
     {"role": "Developer/Maintainer", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": false},
-    {"role": "Reviewer/CODEOWNER", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
+    {"role": "Reviewer/CODEOWNER", "assignee": "Orchestrated independent reviewer pool", "actorType": "ai-agent-pool", "backup": "somefirenoodles", "requiredForG0": true},
     {"role": "Release Manager", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": false},
-    {"role": "Auditor", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": false}
+    {"role": "Auditor", "assignee": "Orchestrated independent auditor pool", "actorType": "ai-agent-pool", "backup": "somefirenoodles", "requiredForG0": false}
   ],
   "independenceRules": [
-    "author != approver",
+    "authoring_agent_instance != reviewer_agent_instance",
+    "reviewer_agent_instance does not modify the candidate before verdict",
     "waiver_requester != waiver_approver",
     "release_builder != independent_release_verifier"
-  ]
+  ],
+  "reviewProtocol": {
+    "schemaVersion": "xunlie.review-orchestration/v1",
+    "minimumIndependentReviewers": 1,
+    "criticalChangeReviewers": 2,
+    "frozenCandidateRequired": true,
+    "reviewerMayModifyCandidate": false,
+    "unanimousPositiveDecisionRequired": true,
+    "blockingSeverities": ["critical", "high"],
+    "requiredEvidence": ["reviewerId", "task", "scope", "candidate", "verdict", "commands", "findings", "timestamp"]
+  }
 }
