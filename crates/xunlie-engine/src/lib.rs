@@ -316,6 +316,15 @@ mod tests {
     }
 
     #[test]
+    fn canonical_json_survives_typed_round_trip() {
+        let original = compile(ADD).unwrap().canonical_json().unwrap();
+        let decoded: ContractIr = serde_json::from_str(&original).unwrap();
+
+        decoded.validate().unwrap();
+        assert_eq!(decoded.canonical_json().unwrap(), original);
+    }
+
+    #[test]
     fn tampered_provenance_invalidates_artifact_digest_only() {
         let original = compile(ADD).unwrap();
         let original_content_digest = original.content_digest().clone();

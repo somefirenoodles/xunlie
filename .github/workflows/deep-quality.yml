@@ -46,6 +46,8 @@ jobs:
         run: rustup component add llvm-tools-preview
       - name: Install pinned coverage runner
         run: cargo install cargo-llvm-cov --version 0.8.7 --locked
+      - name: Create coverage output directory
+        run: mkdir -p coverage
       - name: Enforce line coverage and write LCOV
         run: >-
           cargo llvm-cov --workspace --all-features --all-targets --locked

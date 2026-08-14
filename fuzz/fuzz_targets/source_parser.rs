@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 use libfuzzer_sys::fuzz_target;
+use xunlie_domain::ContractIr;
 use xunlie_engine::compile;
 
 fuzz_target!(|bytes: &[u8]| {
@@ -17,11 +18,15 @@ fuzz_target!(|bytes: &[u8]| {
         let first = contract
             .canonical_json()
             .expect("a successfully compiled contract must be serializable");
-        let decoded: serde_json::Value =
+        let decoded: ContractIr =
             serde_json::from_str(&first).expect("canonical contract output must be valid JSON");
-        let round_trip = serde_json::to_string(&decoded)
-            .expect("a canonical contract JSON value must be serializable");
+        decoded
+            .validate()
+            .expect("a decoded canonical contract must validate");
+        let round_trip = decoded
+            .canonical_json()
+            .expect("a decoded canonical contract must be serializable");
 
-        assert_eq!(first, round_trip, "contract serialization must be canonical");
+        assert_eq!(first, round_trip, "typed round-trip must remain canonical");
     }
 });

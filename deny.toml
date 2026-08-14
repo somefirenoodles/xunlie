@@ -23,7 +23,11 @@ allow = [
   "Unicode-3.0",
   "Zlib",
 ]
-exceptions = []
+exceptions = [
+  # libfuzzer-sys links LLVM's libFuzzer runtime; NCSA is OSI-approved and
+  # remains confined to the non-published fuzz workspace.
+  { allow = ["NCSA"], crate = "libfuzzer-sys@0.4.13" },
+]
 
 [licenses.private]
 ignore = false

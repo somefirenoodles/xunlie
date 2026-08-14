@@ -6,7 +6,7 @@ Successful compilations must also satisfy three invariants:
 
 1. the emitted contract validates;
 2. canonical output is valid JSON;
-3. decoding and compactly encoding that output is byte-for-byte stable.
+3. decoding into the typed `ContractIr` and canonicalizing it again is byte-for-byte stable.
 
 The fuzz package is an independent workspace because `cargo-fuzz`/libFuzzer require nightly,
 while product builds remain on the stable toolchain pinned in `rust-toolchain.toml`. Dependencies
