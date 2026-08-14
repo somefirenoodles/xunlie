@@ -1,10 +1,10 @@
-# Configuración requerida del repositorio GitHub
+# Configuración del repositorio GitHub
 
-Este documento es una receta de administración. No constituye evidencia de que los controles remotos estén activos. G0 exige export/captura verificable de la configuración aplicada.
+Este documento separa la configuración remota activa de la configuración objetivo para aprobación independiente. La evidencia exportada está en `quality/evidence/github-bootstrap.json`.
 
 ## Baseline
 
-- Repositorio: nombre `xunlie`; owner y visibilidad pendientes.
+- Repositorio: [somefirenoodles/xunlie](https://github.com/somefirenoodles/xunlie), público y MIT.
 - Rama por defecto: `main`.
 - Merge: squash habilitado; merge commits y rebase merge deshabilitados.
 - Auto-delete de branches integrado.
@@ -12,24 +12,33 @@ Este documento es una receta de administración. No constituye evidencia de que 
 - Actions permitidas por allowlist; `GITHUB_TOKEN` con `contents: read` por defecto.
 - Labels iniciales: `type:feature`, `type:defect`, `type:architecture`, `type:security`, `type:process`, `needs:triage`, `needs:adr`, `risk:critical` y `risk:high`.
 
-## Ruleset `main-protection`
+## Ruleset activo `main-protection`
 
-Crear primero en modo **Evaluate**, probar PR válida y PR adversarial y entonces activar.
+Ruleset ID `20826197`, enforcement `active`, creado el 2026-08-13:
 
 - bloquear borrado y force-push;
 - requerir pull request;
+- cero bypass, incluso para el owner;
+- cero approvals mientras solo exista una identidad operativa;
+- descartar approvals obsoletos cuando existan;
+- resolver conversaciones antes de merge;
+- historia lineal y solo squash merge;
+- branch estrictamente actualizada antes de integrar;
+- check obligatorio `validate-quality-system`.
+
+Esta protección es operativa, no independiente. DEC-011 bloquea G0/G5 hasta añadir un segundo maintainer/auditor y elevar el ruleset.
+
+## Elevación requerida para G0 independiente
+
 - 1 aprobación general; 2 para dominio, protocolo, seguridad, workflows, arquitectura y release;
 - requerir CODEOWNER y aprobación del último push por persona distinta;
-- descartar approvals obsoletos;
-- resolver conversaciones antes de merge;
-- historia lineal y commits firmados;
-- branch actualizada o merge queue antes de integrar;
-- sin bypass ordinario; equipo break-glass restringido y auditado;
-- impedir creación/actualización si fallan status checks.
+- commits/tags firmados y merge queue cuando haya capacidad suficiente;
+- equipo break-glass separado, restringido y auditado;
+- probar rechazo de autoaprobación y bypass.
 
-Checks de G0:
+Check activo de bootstrap:
 
-- `governance / validate-quality-system`
+- `validate-quality-system`
 
 Checks que se hacen obligatorios al comenzar G3, después de existir y pasar en `main`:
 
@@ -68,6 +77,6 @@ No se configura como required un nombre de check inexistente: se introduce workf
 
 ## Evidencia de activación
 
-Exportar o capturar vía API: rulesets, bypass actors, required checks, Actions policy, environments, CODEOWNERS efectivo y resultado de dos pruebas: push directo rechazado y PR sin aprobación/check rechazado. Guardar digests en el GateRecord G0.
+La API confirma ruleset activo, ningún bypass, check obligatorio, secret scanning/push protection, Dependabot security updates, squash-only y rama `main`. Falta comprobar mediante intento controlado el rechazo de push directo y registrar el ciclo completo de una PR; esta PR realiza esa prueba.
 
 Referencias oficiales: [reglas disponibles en rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets), [artifact attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations) y [dependency review](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/configure-dependency-review-action).
