@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "xunlie.quality.architecture/v1",
+  "baselineVersion": "0.1.0",
+  "components": [
+    {"id": "COMP-DOMAIN", "path": "crates/xunlie-domain", "allowedDependencies": []},
+    {"id": "COMP-ENGINE", "path": "crates/xunlie-engine", "allowedDependencies": ["COMP-DOMAIN"]},
+    {"id": "COMP-PROTOCOL", "path": "crates/xunlie-protocol", "allowedDependencies": []},
+    {"id": "COMP-EXECUTION", "path": "crates/xunlie-execution", "allowedDependencies": ["COMP-DOMAIN", "COMP-PROTOCOL", "COMP-EVIDENCE"]},
+    {"id": "COMP-EVIDENCE", "path": "crates/xunlie-evidence", "allowedDependencies": ["COMP-DOMAIN"]},
+    {"id": "COMP-REPORT", "path": "crates/xunlie-report", "allowedDependencies": ["COMP-DOMAIN", "COMP-EVIDENCE"]},
+    {"id": "COMP-CLI", "path": "crates/xunlie-cli", "allowedDependencies": ["COMP-DOMAIN", "COMP-ENGINE", "COMP-PROTOCOL", "COMP-EXECUTION", "COMP-EVIDENCE", "COMP-REPORT"]},
+    {"id": "COMP-TESTKIT", "path": "crates/xunlie-testkit", "allowedDependencies": ["COMP-DOMAIN", "COMP-PROTOCOL"]}
+  ],
+  "invariants": [
+    {"id": "INV-ARCH-001", "critical": true, "statement": "Resolve contract before agent execution."},
+    {"id": "INV-ARCH-002", "critical": true, "statement": "Admit only variants with valid equivalence certificate."},
+    {"id": "INV-ARCH-003", "critical": true, "statement": "Domain has no filesystem, network, clock, global randomness or process IO."},
+    {"id": "INV-ARCH-004", "critical": true, "statement": "Inputs affecting verdicts are identified by digest or version."},
+    {"id": "INV-ARCH-005", "critical": true, "statement": "Agent and verifier adapters execute out of process."},
+    {"id": "INV-ARCH-006", "critical": true, "statement": "Infrastructure failure is not semantic divergence."},
+    {"id": "INV-ARCH-007", "critical": true, "statement": "PDR is inconclusive when canonical run or oracle coverage is insufficient."},
+    {"id": "INV-ARCH-008", "critical": false, "statement": "Aggregate reports retain per-variant evidence."},
+    {"id": "INV-ARCH-009", "critical": true, "statement": "Budgets, permissions and isolation are enforced outside the agent."},
+    {"id": "INV-ARCH-010", "critical": true, "statement": "Persisted formats and protocols declare version and compatibility policy."},
+    {"id": "INV-ARCH-011", "critical": true, "statement": "Unsafe code is forbidden in trusted core unless an ADR exception is approved."},
+    {"id": "INV-ARCH-012", "critical": true, "statement": "Evidence is append-only."}
+  ],
+  "forbiddenDomainCapabilities": ["filesystem", "network", "wall-clock", "global-randomness", "process-execution", "provider-sdk"]
+}
+

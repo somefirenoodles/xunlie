@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "xunlie.quality.gate-record/v1",
+  "recordId": "REPLACE-ME",
+  "planVersion": "0.1.0",
+  "gateId": "G3",
+  "candidate": "git-sha-or-release-digest",
+  "decision": "BLOCKED",
+  "controls": [],
+  "waivers": [],
+  "approver": null,
+  "note": "Generate the stage-specific control list with scripts/create_gate_record.py."
+}
+

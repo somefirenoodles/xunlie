@@ -1,0 +1,6 @@
+# A second independent CODEOWNER is required before G0/G5 can claim independence.
+* @somefirenoodles
+/docs/architecture/ @somefirenoodles
+/quality/ @somefirenoodles
+/.github/ @somefirenoodles
+/SECURITY.md @somefirenoodles

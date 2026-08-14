@@ -1,0 +1,248 @@
+{
+  "schemaVersion": "xunlie.quality.requirements/v1",
+  "baselineVersion": "0.1.0",
+  "status": "proposed",
+  "requirements": [
+    {
+      "id": "REQ-F-001",
+      "type": "functional",
+      "title": "Ingesta trazable de fuentes",
+      "statement": "El sistema debe ingerir fuentes soportadas preservando su procedencia y orden.",
+      "acceptance": ["Cada fuente tiene URI o identidad, digest y posición.", "Una fuente inválida falla con diagnóstico estructurado sin ContractIR parcial utilizable."],
+      "risk": "high",
+      "ownerRole": "Product Owner",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-002",
+      "type": "functional",
+      "title": "Compilación a ContractIR",
+      "statement": "El sistema debe compilar fuentes válidas en un ContractIR canónico y versionado.",
+      "acceptance": ["El IR valida contra su esquema.", "Entradas semánticamente idénticas producen el mismo digest bajo la misma versión."],
+      "risk": "critical",
+      "ownerRole": "Product Owner",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-003",
+      "type": "functional",
+      "title": "Resolución explícita de historias",
+      "statement": "El sistema debe resolver precedencia, sustitución y conflicto sin inferir silenciosamente la intención.",
+      "acceptance": ["Casos no ambiguos producen el contrato esperado.", "Contradicciones sin política producen estado conflict y diagnóstico de fuentes."],
+      "risk": "critical",
+      "ownerRole": "Chief Architect",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-004",
+      "type": "functional",
+      "title": "Variantes equivalentes certificadas",
+      "statement": "El sistema debe generar variantes de historia solo cuando la equivalencia contractual se certifique.",
+      "acceptance": ["Cada variante incluye operador, precondiciones, digests before/after y certificado.", "Una precondición fallida excluye la variante y explica la causa."],
+      "risk": "critical",
+      "ownerRole": "Chief Architect",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-005",
+      "type": "functional",
+      "title": "Ejecución aislada",
+      "statement": "El sistema debe ejecutar cada historia en un workspace limpio y aislado.",
+      "acceptance": ["Dos corridas no comparten cambios, procesos ni credenciales mutables.", "El backend registra capacidades y evidencia de limpieza."],
+      "risk": "critical",
+      "ownerRole": "Security Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-006",
+      "type": "functional",
+      "title": "Protocolo de adaptadores",
+      "statement": "El sistema debe integrar agentes mediante un protocolo fuera de proceso, versionado y con negociación de capacidades.",
+      "acceptance": ["Un adaptador compatible pasa la suite de conformidad.", "Una incompatibilidad se detecta antes de consumir presupuesto o modificar el workspace."],
+      "risk": "high",
+      "ownerRole": "Chief Architect",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-007",
+      "type": "functional",
+      "title": "Verificadores enchufables",
+      "statement": "El sistema debe ejecutar verificadores externos y normalizar observaciones sin ocultar su alcance.",
+      "acceptance": ["Cada observación contiene verificador, versión, alcance, estado y evidencia.", "Timeout, crash y resultado negativo son estados distintos."],
+      "risk": "critical",
+      "ownerRole": "Quality Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-008",
+      "type": "functional",
+      "title": "Registro de evidencia",
+      "statement": "El sistema debe producir bundles append-only direccionados por contenido.",
+      "acceptance": ["Modificar un byte invalida la comprobación de integridad.", "El manifiesto enlaza entradas, eventos, outputs, herramientas y observaciones."],
+      "risk": "critical",
+      "ownerRole": "Quality Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-009",
+      "type": "functional",
+      "title": "Comparación y PDR",
+      "statement": "El sistema debe comparar resultados pareados y calcular PDR sin mezclar fallos semánticos e infraestructura.",
+      "acceptance": ["La fórmula y denominador aparecen en el reporte.", "Canónico fallido o cobertura insuficiente produce inconclusive, nunca PASS."],
+      "risk": "critical",
+      "ownerRole": "Quality Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-010",
+      "type": "functional",
+      "title": "Reporte y gate explicable",
+      "statement": "El sistema debe emitir reporte granular y veredicto de CI con códigos de salida estables.",
+      "acceptance": ["Cada fallo enlaza variante, obligación, observación y evidencia.", "La misma evidencia y regla producen el mismo veredicto."],
+      "risk": "high",
+      "ownerRole": "Quality Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-011",
+      "type": "functional",
+      "title": "Presupuesto y autoridad",
+      "statement": "El sistema debe aplicar límites y permisos fuera del control del agente.",
+      "acceptance": ["Tiempo, procesos, disco y coste/tokens configurados terminan la corrida al excederse.", "La evidencia distingue límite alcanzado de fallo semántico."],
+      "risk": "critical",
+      "ownerRole": "Security Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-F-012",
+      "type": "functional",
+      "title": "Replay de veredictos",
+      "statement": "El sistema debe reconstruir un veredicto desde evidencia compatible sin volver a invocar al agente.",
+      "acceptance": ["Replay del corpus dorado reproduce observaciones derivadas y veredicto.", "Inputs faltantes o incompatibles producen diagnóstico, no resultado parcial aceptable."],
+      "risk": "critical",
+      "ownerRole": "Quality Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-001",
+      "type": "quality",
+      "title": "Determinismo",
+      "statement": "Las funciones deterministas deben producir resultados idénticos para entradas y versiones idénticas.",
+      "acceptance": ["Vectores canónicos son idénticos en plataformas soportadas.", "Toda aleatoriedad controlada registra semilla y algoritmo."],
+      "risk": "critical",
+      "ownerRole": "Chief Architect",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-002",
+      "type": "quality",
+      "title": "Auditabilidad",
+      "statement": "Una release debe ser reconstruible desde requisito hasta artefacto y aprobación.",
+      "acceptance": ["100% de una muestra dirigida y aleatoria tiene cadena completa.", "Cada decisión de gate identifica plan, commit, herramientas, evidencia y aprobador."],
+      "risk": "critical",
+      "ownerRole": "Quality Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-003",
+      "type": "quality",
+      "title": "Seguridad y aislamiento",
+      "statement": "El sistema debe limitar autoridad y resistir contaminación, path traversal y exfiltración probadas.",
+      "acceptance": ["Pruebas adversariales no cruzan workspaces ni recuperan secretos ausentes de allowlist.", "Permisos efectivos se registran por corrida."],
+      "risk": "critical",
+      "ownerRole": "Security Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-004",
+      "type": "quality",
+      "title": "Confiabilidad",
+      "statement": "El sistema debe fallar de forma cerrada, tipada y recuperable sin emitir falsos PASS.",
+      "acceptance": ["Crash, timeout, disco lleno y proceso huérfano tienen pruebas de caos.", "Una interrupción conserva evidencia válida hasta el último evento confirmado."],
+      "risk": "critical",
+      "ownerRole": "Quality Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-005",
+      "type": "quality",
+      "title": "Eficiencia y límites",
+      "statement": "El sistema debe medir y respetar presupuestos de recursos sin degradación no explicada.",
+      "acceptance": ["Benchmarks registran p50/p95 y entorno.", "Una regresión superior al umbral aprobado bloquea o tiene waiver vigente."],
+      "risk": "medium",
+      "ownerRole": "Product Owner",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-006",
+      "type": "quality",
+      "title": "Portabilidad",
+      "statement": "CLI, contratos y replay deben operar en las plataformas soportadas.",
+      "acceptance": ["La matriz CI pasa en cada plataforma objetivo.", "Bundles portables reproducen el mismo digest/veredicto donde aplique."],
+      "risk": "high",
+      "ownerRole": "Product Owner",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-007",
+      "type": "quality",
+      "title": "Compatibilidad",
+      "statement": "Esquemas, protocolos y CLI deben evolucionar mediante reglas explícitas de compatibilidad.",
+      "acceptance": ["Fixtures de la versión compatible anterior pasan.", "Breaking changes fallan en negociación y poseen migración/version mayor."],
+      "risk": "high",
+      "ownerRole": "Chief Architect",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-008",
+      "type": "quality",
+      "title": "Mantenibilidad",
+      "statement": "El producto debe conservar capas, simplicidad, cobertura y dependencias dentro de límites aprobados.",
+      "acceptance": ["Fitness functions arquitectónicas pasan en cada PR.", "No existe deuda crítica sin ID, dueño y fecha."],
+      "risk": "high",
+      "ownerRole": "Chief Architect",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-009",
+      "type": "quality",
+      "title": "Flexibilidad de integración",
+      "statement": "Nuevos agentes y verificadores conformes deben integrarse sin modificar el dominio.",
+      "acceptance": ["Un adapter fixture externo completa la suite solo mediante protocolo.", "Ningún crate de dominio depende de proveedor."],
+      "risk": "high",
+      "ownerRole": "Chief Architect",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-010",
+      "type": "quality",
+      "title": "Interacción y diagnósticos",
+      "statement": "La CLI debe ofrecer diagnósticos accionables, accesibles y estables para humanos y automatización.",
+      "acceptance": ["Errores muestran causa, ubicación, reparación y código.", "JSON de salida está separado de logs y valida contra esquema."],
+      "risk": "medium",
+      "ownerRole": "Product Owner",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-011",
+      "type": "quality",
+      "title": "Privacidad y minimización",
+      "statement": "El sistema debe minimizar, redactar y retener datos sensibles según política explícita.",
+      "acceptance": ["Fixtures de secretos quedan redactados en logs y bundles.", "Retención y eliminación producen registro verificable."],
+      "risk": "critical",
+      "ownerRole": "Security Lead",
+      "status": "proposed"
+    },
+    {
+      "id": "REQ-Q-012",
+      "type": "quality",
+      "title": "Integridad de supply chain",
+      "statement": "Cada release debe incluir inventario, checksum y procedencia verificables.",
+      "acceptance": ["SBOM cubre dependencias y artefactos distribuidos.", "La atestación enlaza source commit, workflow y digest y se verifica de forma independiente."],
+      "risk": "critical",
+      "ownerRole": "Security Lead",
+      "status": "proposed"
+    }
+  ]
+}
+

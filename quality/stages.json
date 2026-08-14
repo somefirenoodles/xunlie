@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "xunlie.quality.stages/v1",
+  "planVersion": "0.1.0",
+  "stages": [
+    {
+      "id": "G0",
+      "name": "Governance baseline",
+      "allowedDecisions": ["GO", "BLOCKED"],
+      "requiredControls": ["CTRL-GOV-001", "CTRL-GOV-002", "CTRL-REQ-001", "CTRL-ARCH-001", "CTRL-REPO-001", "CTRL-DEC-001"]
+    },
+    {
+      "id": "G1",
+      "name": "Discovery and requirements",
+      "allowedDecisions": ["GO", "REWORK", "BLOCKED"],
+      "requiredControls": ["CTRL-REQ-001", "CTRL-REQ-002", "CTRL-RISK-001", "CTRL-SEC-004", "CTRL-DEC-001"]
+    },
+    {
+      "id": "G2",
+      "name": "Architecture and risk",
+      "allowedDecisions": ["GO", "REWORK", "BLOCKED"],
+      "requiredControls": ["CTRL-REQ-001", "CTRL-ARCH-001", "CTRL-ARCH-002", "CTRL-TEST-004", "CTRL-SEC-004", "CTRL-COMP-001", "CTRL-DEC-001"]
+    },
+    {
+      "id": "G3",
+      "name": "Construction increment",
+      "allowedDecisions": ["MERGE", "BLOCKED"],
+      "requiredControls": ["CTRL-REQ-001", "CTRL-ARCH-001", "CTRL-ARCH-002", "CTRL-CODE-001", "CTRL-TEST-001", "CTRL-TEST-002", "CTRL-SEC-001", "CTRL-SEC-002", "CTRL-SC-001", "CTRL-COMP-001", "CTRL-DOC-001"]
+    },
+    {
+      "id": "G4",
+      "name": "Integration and validation",
+      "allowedDecisions": ["RC", "BLOCKED"],
+      "requiredControls": ["CTRL-REQ-001", "CTRL-ARCH-002", "CTRL-TEST-001", "CTRL-TEST-002", "CTRL-TEST-003", "CTRL-SEC-001", "CTRL-SEC-003", "CTRL-COMP-001", "CTRL-EVID-001", "CTRL-REL-001", "CTRL-REL-002", "CTRL-PERF-001", "CTRL-DOC-001"]
+    },
+    {
+      "id": "G5",
+      "name": "Release candidate",
+      "allowedDecisions": ["RELEASE", "BLOCKED"],
+      "requiredControls": ["CTRL-REQ-001", "CTRL-SEC-001", "CTRL-SC-001", "CTRL-SC-002", "CTRL-EVID-001", "CTRL-REL-001", "CTRL-REL-002", "CTRL-DOC-001", "CTRL-OPS-001", "CTRL-DEC-001"]
+    },
+    {
+      "id": "G6",
+      "name": "Operation and maintenance",
+      "allowedDecisions": ["CONTINUE", "MITIGATE", "ROLLBACK"],
+      "requiredControls": ["CTRL-RISK-001", "CTRL-SEC-001", "CTRL-SC-001", "CTRL-EVID-001", "CTRL-OPS-001", "CTRL-DEC-001"]
+    },
+    {
+      "id": "G7",
+      "name": "Retirement",
+      "allowedDecisions": ["RETIRE", "BLOCKED"],
+      "requiredControls": ["CTRL-RISK-001", "CTRL-EVID-001", "CTRL-DOC-001", "CTRL-RET-001", "CTRL-DEC-001"]
+    }
+  ]
+}

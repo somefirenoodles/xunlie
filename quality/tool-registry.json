@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xunlie.quality.tools/v1",
+  "baselineVersion": "0.1.0",
+  "asOf": "2026-08-13",
+  "qualificationPolicy": "Observe on golden corpus and one previous release before a new semantic tool becomes blocking.",
+  "tools": [
+    {"id": "TOOL-RUST", "name": "Rust 2024 stable toolchain", "purpose": "trusted core and CLI", "status": "selected", "pinPolicy": "rust-toolchain.toml exact channel after M1 bootstrap", "ownerRole": "Chief Architect", "source": "https://www.rust-lang.org/"},
+    {"id": "TOOL-NEXTEST", "name": "cargo-nextest", "purpose": "test execution and machine reports", "status": "candidate", "pinPolicy": "locked cargo install via CI image", "ownerRole": "Quality Lead", "source": "https://github.com/nextest-rs/nextest"},
+    {"id": "TOOL-PROPTEST", "name": "proptest", "purpose": "property testing", "status": "candidate", "pinPolicy": "Cargo.lock", "ownerRole": "Quality Lead", "source": "https://github.com/proptest-rs/proptest"},
+    {"id": "TOOL-INSTA", "name": "insta", "purpose": "reviewed golden snapshots", "status": "candidate", "pinPolicy": "Cargo.lock", "ownerRole": "Quality Lead", "source": "https://github.com/mitsuhiko/insta"},
+    {"id": "TOOL-MUTANTS", "name": "cargo-mutants", "purpose": "mutation adequacy", "status": "candidate", "pinPolicy": "locked CI tool image", "ownerRole": "Quality Lead", "source": "https://github.com/sourcefrog/cargo-mutants"},
+    {"id": "TOOL-FUZZ", "name": "cargo-fuzz", "purpose": "parser and protocol fuzzing", "status": "candidate", "pinPolicy": "locked CI tool image", "ownerRole": "Security Lead", "source": "https://github.com/rust-fuzz/cargo-fuzz"},
+    {"id": "TOOL-DENY", "name": "cargo-deny", "purpose": "advisory, license and source policy", "status": "selected", "pinPolicy": "locked CI tool image", "ownerRole": "Security Lead", "source": "https://github.com/EmbarkStudios/cargo-deny"},
+    {"id": "TOOL-LLVM-COV", "name": "cargo-llvm-cov", "purpose": "coverage evidence", "status": "candidate", "pinPolicy": "locked CI tool image", "ownerRole": "Quality Lead", "source": "https://github.com/taiki-e/cargo-llvm-cov"},
+    {"id": "TOOL-CODEQL", "name": "GitHub CodeQL Action v4", "purpose": "Rust and Actions SAST", "status": "selected", "pinPolicy": "full commit SHA updated by Dependabot", "ownerRole": "Security Lead", "source": "https://github.com/github/codeql-action"},
+    {"id": "TOOL-ZIZMOR", "name": "zizmor", "purpose": "GitHub Actions security", "status": "candidate", "pinPolicy": "locked CI tool image", "ownerRole": "Security Lead", "source": "https://github.com/woodruffw/zizmor"},
+    {"id": "TOOL-ACTIONLINT", "name": "actionlint", "purpose": "GitHub Actions correctness", "status": "candidate", "pinPolicy": "locked CI tool image", "ownerRole": "Quality Lead", "source": "https://github.com/rhysd/actionlint"},
+    {"id": "TOOL-ATTEST", "name": "GitHub artifact attestations", "purpose": "release provenance and SBOM attestations", "status": "selected", "pinPolicy": "actions pinned to full SHA", "ownerRole": "Release Manager", "source": "https://docs.github.com/en/actions/concepts/security/artifact-attestations"},
+    {"id": "TOOL-SCORECARD", "name": "OpenSSF Scorecard", "purpose": "repository security posture", "status": "candidate", "pinPolicy": "action pinned to full SHA", "ownerRole": "Security Lead", "source": "https://scorecard.dev/"},
+    {"id": "TOOL-OTEL", "name": "OpenTelemetry", "purpose": "opt-in structured telemetry export", "status": "candidate", "pinPolicy": "Cargo.lock and protocol version", "ownerRole": "Chief Architect", "source": "https://opentelemetry.io/"}
+  ]
+}
+

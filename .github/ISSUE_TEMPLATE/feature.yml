@@ -1,0 +1,39 @@
+name: Feature / requirement
+description: Proponer una capacidad verificable
+title: "[Feature]: "
+labels: ["type:feature", "needs:triage"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Necesidad y usuario
+      description: Qué resultado necesita quién y por qué ahora.
+    validations:
+      required: true
+  - type: input
+    id: requirement
+    attributes:
+      label: Requirement ID
+      placeholder: REQ-F-xxx o new
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación observables
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Riesgo máximo estimado
+      options: [critical, high, medium, low]
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Arquitectura, seguridad, compatibilidad y rollback
+    validations:
+      required: true
+

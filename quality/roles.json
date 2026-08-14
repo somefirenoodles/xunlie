@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "xunlie.quality.roles/v1",
+  "baselineVersion": "0.1.0",
+  "repositoryOwner": "somefirenoodles",
+  "operatingModel": "solo-agent-assisted",
+  "independenceFeasible": false,
+  "roles": [
+    {"role": "Product Owner", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
+    {"role": "Chief Architect", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
+    {"role": "Quality Lead", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
+    {"role": "Security Lead", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
+    {"role": "Developer/Maintainer", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": false},
+    {"role": "Reviewer/CODEOWNER", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": true},
+    {"role": "Release Manager", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": false},
+    {"role": "Auditor", "assignee": "OpenAI Codex", "actorType": "ai-agent", "backup": null, "requiredForG0": false}
+  ],
+  "independenceRules": [
+    "author != approver",
+    "waiver_requester != waiver_approver",
+    "release_builder != independent_release_verifier"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "xunlie.quality.gate-record/v1",
+  "recordId": "GATE-G0-INITIAL-2026-08-13",
+  "planVersion": "0.1.0",
+  "gateId": "G0",
+  "candidate": "working-tree-baseline",
+  "decision": "BLOCKED",
+  "controls": [
+    {"id": "CTRL-GOV-001", "result": "PASS", "evidence": ["docs/quality/SOFTWARE-QUALITY-PLAN.md", "quality/quality-plan.json"]},
+    {"id": "CTRL-GOV-002", "result": "BLOCKED", "evidence": ["docs/process/ROLES-RACI.md"], "reason": "Roles are defined but named people are not assigned."},
+    {"id": "CTRL-REQ-001", "result": "PASS", "evidence": ["quality/requirements.json", "quality/traceability.json"]},
+    {"id": "CTRL-ARCH-001", "result": "PASS", "evidence": ["docs/architecture/ARCHITECTURE.md", "quality/architecture-rules.json"]},
+    {"id": "CTRL-REPO-001", "result": "BLOCKED", "evidence": ["docs/github/REPOSITORY-SETTINGS.md"], "reason": "No GitHub remote or active ruleset exists yet."},
+    {"id": "CTRL-DEC-001", "result": "BLOCKED", "evidence": ["docs/decisions/OPEN-DECISIONS.md"], "reason": "Repository ownership, visibility and license are unresolved."}
+  ],
+  "waivers": [],
+  "approver": null,
+  "note": "This record is intentionally blocked. It must be superseded, never edited to GO after the fact."
+}
+

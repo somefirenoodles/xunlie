@@ -1,0 +1,31 @@
+name: Architecture change
+description: Proponer una decisión o cambio de frontera
+title: "[Architecture]: "
+labels: ["type:architecture", "needs:adr"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto y fuerzas
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas y evidencia
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requisitos, invariantes y riesgos afectados
+      placeholder: REQ-*, INV-ARCH-*, RISK-*
+    validations:
+      required: true
+  - type: textarea
+    id: migration
+    attributes:
+      label: Compatibilidad, migración y rollback
+    validations:
+      required: true
+
