@@ -11,16 +11,24 @@
 - **RM — Release Manager:** ensamblado, verificación y publicación de release.
 - **AUD — Auditor:** muestreo y evaluación independiente del sistema.
 
-Una persona puede cubrir varios roles en fase temprana, salvo autor/aprobador del mismo cambio y solicitante/aprobador de una excepción.
+Un actor puede cubrir varios roles en fase temprana, salvo autor/aprobador del mismo cambio y
+solicitante/aprobador de una excepción. Para revisión agéntica, cada revisor es una instancia
+separada, con tarea explícita y sin autoría ni escritura sobre el candidato.
 
 ## Asignación operativa inicial
 
 - Titular del repositorio: `somefirenoodles`.
-- Ejecutor de todos los roles operativos: OpenAI Codex.
-- Modo: `solo-agent-assisted`.
-- Independencia: no satisfecha; DEC-011 bloquea una declaración G0/G5 independiente.
+- Orquestador de los roles operativos: OpenAI Codex.
+- Modo: `orchestrated-multi-agent`.
+- Revisión: pool de instancias revisoras separadas conforme a
+  `xunlie.review-orchestration/v1`.
+- Independencia técnica: satisfecha cuando el GateRecord prueba separación, candidato congelado,
+  quorum, reproducción y unanimidad.
 
-Los controles automáticos pueden aportar evidencia independiente del código que evalúan, pero no constituyen una segunda identidad responsable ni pueden aceptar riesgo legal/residual por sí solos.
+Un check automático aislado no constituye revisión. La garantía emerge de la orquestación
+registrada de agentes revisores distintos del autor, su evaluación adversarial y el bloqueo
+fail-closed. Los agentes no aceptan por sí solos riesgo legal o de negocio: esa autoridad permanece
+en `somefirenoodles`.
 
 ## Matriz
 

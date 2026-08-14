@@ -61,7 +61,10 @@ Una contradicción no se resuelve silenciosamente por precedencia: se abre un de
 
 **Bucle continuo por cambio:** cada issue y pull request ejecuta trazabilidad, fitness functions, análisis estático, tests, seguridad y generación de evidencia. Evita acumular deuda hasta el final de una etapa.
 
-**Gate de salida de etapa:** una persona independiente del autor verifica criterios, evidencia, riesgos y residuals. Evita confundir “CI verde” con “etapa terminada”.
+**Gate de salida de etapa:** uno o más revisores independientes del autor verifican criterios,
+evidencia, riesgos y residuales sobre un candidato congelado. La independencia puede realizarse
+mediante instancias de agente separadas conforme a `xunlie.review-orchestration/v1`; no se reduce a
+que “CI esté verde”.
 
 ### 5.2 Regla no compensatoria
 
@@ -93,11 +96,19 @@ Las responsabilidades detalladas están en `docs/process/ROLES-RACI.md`.
 Reglas mínimas:
 
 - el autor no aprueba su propio cambio;
+- una instancia revisora no participa en la autoría ni modifica el candidato antes de su veredicto;
+- cambios críticos reciben al menos dos revisiones separadas y un resultado positivo requiere
+  unanimidad; cualquier finding crítico/alto produce `REWORK` o `BLOCKED`;
 - el Quality Lead puede bloquear cualquier gate por evidencia insuficiente;
 - arquitectura, dominio, seguridad, workflows y releases requieren CODEOWNER;
 - una excepción de seguridad no puede aprobarla quien la solicita;
 - el Release Manager no modifica artefactos después de su atestación;
 - un equipo pequeño puede acumular roles, pero no puede eliminar la revisión independiente de un cambio crítico.
+
+La independencia aquí es operacional y auditable: identidad de instancia, tarea, alcance, SHA,
+comandos, findings, hora y veredicto quedan registrados. El orquestador agrega los veredictos, pero
+no aporta un voto revisor. El propietario humano conserva las decisiones que impliquen intención,
+responsabilidad jurídica o aceptación de riesgo de negocio.
 
 ## 7. Plan por ciclo de vida
 
@@ -272,7 +283,8 @@ Cada gate produce un `GateRecord` que contiene:
 - requisitos/riesgos cubiertos;
 - herramientas y versiones;
 - waivers vigentes;
-- revisor independiente, fecha y decisión.
+- autor/orquestador, revisores independientes, alcance, fecha y decisión;
+- SHA congelado, comandos reproducidos, findings y veredicto individual de cada revisor.
 
 Los bundles se conservan por la mayor de: vida de la release + 24 meses, obligación contractual o política de seguridad. Logs sensibles pueden tener retención menor, pero el manifiesto y su prueba de eliminación permanecen.
 
@@ -302,4 +314,3 @@ Gate G0 aprueba este plan cuando:
 6. decisiones abiertas bloqueantes se resuelven.
 
 Hasta entonces el estado correcto es **propuesta**, no “plan aprobado”.
-

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xunlie.source/v1",
+  "operations": [
+    {
+      "op": "add",
+      "requirement": {
+        "id": "REQ-F-001",
+        "kind": "functional",
+        "priority": "must",
+        "statement": "The system preserves provenance."
+      }
+    },
+    {
+      "op": "add",
+      "requirement": {
+        "id": "REQ-Q-001",
+        "kind": "quality",
+        "priority": "should",
+        "statement": "The system produces deterministic output."
+      }
+    }
+  ]
+}

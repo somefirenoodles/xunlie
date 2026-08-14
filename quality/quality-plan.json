@@ -29,7 +29,7 @@
   },
   "controls": [
     {"id": "CTRL-GOV-001", "class": "MANDATORY", "ownerRole": "Quality Lead", "description": "Normative documents and machine contracts validate and agree.", "evidenceType": "validation-report"},
-    {"id": "CTRL-GOV-002", "class": "MANDATORY", "ownerRole": "Product Owner", "description": "Roles are assigned to named accountable people and independence is feasible.", "evidenceType": "signed-role-register"},
+    {"id": "CTRL-GOV-002", "class": "MANDATORY", "ownerRole": "Product Owner", "description": "Roles are assigned to accountable actors and reviewer independence is enforced by the declared orchestration protocol.", "evidenceType": "role-and-review-register"},
     {"id": "CTRL-REQ-001", "class": "MANDATORY", "ownerRole": "Quality Lead", "description": "Every applicable requirement maps to architecture, tests and gates.", "evidenceType": "traceability-report"},
     {"id": "CTRL-REQ-002", "class": "MANDATORY", "ownerRole": "Product Owner", "description": "Requirements are atomic and have observable acceptance criteria.", "evidenceType": "requirements-review"},
     {"id": "CTRL-RISK-001", "class": "MANDATORY", "ownerRole": "Quality Lead", "description": "Product, security and delivery risks have owners, controls and residual decisions.", "evidenceType": "risk-register"},
@@ -58,4 +58,3 @@
     {"id": "CTRL-RET-001", "class": "MANDATORY", "ownerRole": "Product Owner", "description": "Retirement preserves migration, required evidence and verified data disposition.", "evidenceType": "retirement-audit"}
   ]
 }
-

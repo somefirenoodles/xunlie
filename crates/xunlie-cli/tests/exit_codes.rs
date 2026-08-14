@@ -162,3 +162,132 @@ fn unwritable_output_is_exit_13() {
         .stdout(predicate::str::is_empty())
         .stderr(predicate::str::contains("XUNLIE-E013"));
 }
+
+#[test]
+fn variant_then_verify_is_an_end_to_end_success() {
+    let fixture = xunlie_testkit::FixtureWorkspace::new().unwrap();
+    let source = fixture
+        .write("history.json", xunlie_testkit::INDEPENDENT_ADDS_SOURCE_JSON)
+        .unwrap();
+    let variant = fixture.path().join("variant.json");
+
+    let generated = Command::cargo_bin("xunlie")
+        .unwrap()
+        .arg("variant")
+        .arg(&source)
+        .args(["--operator", "reverse-independent-adds", "--out"])
+        .arg(&variant)
+        .args(["--format", "json"])
+        .output()
+        .unwrap();
+
+    assert_eq!(generated.status.code(), Some(0));
+    assert!(generated.stderr.is_empty());
+    let result: serde_json::Value = serde_json::from_slice(&generated.stdout).unwrap();
+    assert_eq!(result["command"], "variant");
+    assert_eq!(result["operator"], "history.independent-adds.reverse");
+    assert_eq!(result["contentDigest"].as_str().unwrap().len(), 71);
+    assert_eq!(result["certificateDigest"].as_str().unwrap().len(), 71);
+
+    let artifact: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&variant).unwrap()).unwrap();
+    assert_eq!(artifact["schemaVersion"], "xunlie.certified-variant/v1");
+    assert!(
+        artifact["contentDigest"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:")
+    );
+    assert_eq!(artifact["producer"]["name"], "xunlie-engine");
+    assert_eq!(
+        artifact["certificate"]["schemaVersion"],
+        "xunlie.equivalence-certificate/v1"
+    );
+    assert!(
+        artifact["certificate"]["contentDigest"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:")
+    );
+    assert_eq!(
+        artifact["certificate"]["before"]["contentDigest"],
+        artifact["certificate"]["after"]["contentDigest"]
+    );
+
+    Command::cargo_bin("xunlie")
+        .unwrap()
+        .arg("verify-variant")
+        .arg(source)
+        .arg(variant)
+        .args(["--format", "json"])
+        .assert()
+        .code(0)
+        .stdout(predicate::str::contains("\"command\":\"verify-variant\""))
+        .stderr(predicate::str::is_empty());
+}
+
+#[test]
+fn failed_precondition_is_exit_14_and_writes_no_artifact() {
+    let fixture = xunlie_testkit::FixtureWorkspace::new().unwrap();
+    let value: serde_json::Value =
+        serde_json::from_str(xunlie_testkit::MINIMAL_SOURCE_JSON).unwrap();
+    let canonical = serde_json::to_string(&value).unwrap();
+    let source = fixture.write("canonical.json", canonical).unwrap();
+    let variant = fixture.path().join("variant.json");
+
+    Command::cargo_bin("xunlie")
+        .unwrap()
+        .arg("variant")
+        .arg(source)
+        .args(["--operator", "normalize-json", "--out"])
+        .arg(&variant)
+        .args(["--format", "json"])
+        .assert()
+        .code(14)
+        .stdout(predicate::str::is_empty())
+        .stderr(
+            predicate::str::contains("\"code\":\"XUNLIE-E014\"")
+                .and(predicate::str::contains("output-differs")),
+        );
+
+    assert!(
+        !variant.exists(),
+        "an excluded variant must not leave a partial artifact"
+    );
+}
+
+#[test]
+fn tampered_certified_variant_is_exit_15() {
+    let fixture = xunlie_testkit::FixtureWorkspace::new().unwrap();
+    let source = fixture.write_minimal_source().unwrap();
+    let variant = fixture.path().join("variant.json");
+
+    Command::cargo_bin("xunlie")
+        .unwrap()
+        .arg("variant")
+        .arg(&source)
+        .args(["--operator", "normalize-json", "--out"])
+        .arg(&variant)
+        .assert()
+        .success();
+
+    let mut artifact: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&variant).unwrap()).unwrap();
+    artifact["sources"][0]["source"] =
+        serde_json::Value::String(xunlie_testkit::MINIMAL_SOURCE_JSON.to_owned());
+    std::fs::write(&variant, serde_json::to_vec(&artifact).unwrap()).unwrap();
+
+    Command::cargo_bin("xunlie")
+        .unwrap()
+        .arg("verify-variant")
+        .arg(source)
+        .arg(variant)
+        .args(["--format", "json"])
+        .assert()
+        .code(15)
+        .stdout(predicate::str::is_empty())
+        .stderr(
+            predicate::str::contains("\"code\":\"XUNLIE-E015\"")
+                .and(predicate::str::contains("VARIANT-DIGEST-MISMATCH")),
+        );
+}

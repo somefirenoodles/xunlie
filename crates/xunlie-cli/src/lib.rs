@@ -14,8 +14,12 @@ use std::process::ExitCode;
 
 use clap::{ColorChoice, Parser, Subcommand, ValueEnum, error::ErrorKind};
 use serde::Serialize;
-use xunlie_domain::{ContractIr, Diagnostic};
-use xunlie_engine::{SourceDocument, compile_sources};
+use xunlie_domain::{ContractIr, Diagnostic, PreconditionStatus};
+use xunlie_engine::{
+    CertifiedVariant, JSON_NORMALIZATION_OPERATOR_ID, REVERSE_INDEPENDENT_ADDS_OPERATOR_ID,
+    SourceDocument, VariantGeneration, compile_sources, generate_builtin_variant,
+    verify_certified_variant,
+};
 
 /// Process exit codes are part of the public CLI contract.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,6 +37,10 @@ pub enum ExitStatus {
     ContractInvalid = 12,
     /// A compiled artifact could not be written.
     OutputIo = 13,
+    /// An executable precondition excluded the requested variant.
+    VariantExcluded = 14,
+    /// Variant generation or certificate verification failed closed.
+    VariantInvalid = 15,
     /// CLI infrastructure, such as its output stream, failed.
     Internal = 70,
 }
@@ -65,7 +73,7 @@ pub enum OutputFormat {
 #[command(
     name = "xunlie",
     version,
-    about = "Compile and validate deterministic Xunlie contracts",
+    about = "Compile contracts and certify deterministic history variants",
     disable_help_subcommand = true,
     color = ColorChoice::Never
 )]
@@ -95,6 +103,47 @@ enum Command {
         /// ContractIR JSON document to validate.
         contract: PathBuf,
     },
+
+    /// Generate a transformed history with an equivalence certificate.
+    Variant {
+        /// Baseline xunlie.source/v1 document.
+        input: PathBuf,
+
+        /// Built-in deterministic transformation to apply.
+        #[arg(long, value_enum)]
+        operator: VariantOperatorChoice,
+
+        /// Destination for the xunlie.certified-variant/v1 artifact.
+        #[arg(long, short = 'o', value_name = "FILE")]
+        out: PathBuf,
+    },
+
+    /// Replay an operator and verify a certified variant independently.
+    VerifyVariant {
+        /// Baseline xunlie.source/v1 document.
+        input: PathBuf,
+
+        /// Persisted xunlie.certified-variant/v1 artifact.
+        variant: PathBuf,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+#[value(rename_all = "kebab-case")]
+enum VariantOperatorChoice {
+    /// Canonicalize JSON presentation without changing its data model.
+    NormalizeJson,
+    /// Reverse additions only when every target is independent.
+    ReverseIndependentAdds,
+}
+
+impl VariantOperatorChoice {
+    const fn id(self) -> &'static str {
+        match self {
+            Self::NormalizeJson => JSON_NORMALIZATION_OPERATOR_ID,
+            Self::ReverseIndependentAdds => REVERSE_INDEPENDENT_ADDS_OPERATOR_ID,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -110,9 +159,46 @@ struct ValidatedContract {
     artifact_digest: String,
 }
 
+#[derive(Debug)]
+struct GeneratedVariant {
+    canonical_json: String,
+    operator: String,
+    content_digest: String,
+    artifact_digest: String,
+    baseline_artifact_digest: String,
+    certificate_digest: String,
+}
+
+#[derive(Debug)]
+struct VerifiedVariant {
+    operator: String,
+    content_digest: String,
+    artifact_digest: String,
+    baseline_artifact_digest: String,
+    certificate_digest: String,
+}
+
+#[derive(Debug)]
+enum VariantEngineFailure {
+    Excluded(EngineFailure),
+    Invalid(EngineFailure),
+}
+
 trait ContractEngine {
     fn compile(&self, identity: &str, source: &str) -> Result<CompiledContract, EngineFailure>;
     fn validate(&self, bytes: &[u8]) -> Result<ValidatedContract, EngineFailure>;
+    fn generate_variant(
+        &self,
+        identity: &str,
+        source: &str,
+        operator: &str,
+    ) -> Result<GeneratedVariant, VariantEngineFailure>;
+    fn verify_variant(
+        &self,
+        identity: &str,
+        source: &str,
+        artifact: &[u8],
+    ) -> Result<VerifiedVariant, EngineFailure>;
 }
 
 #[derive(Debug)]
@@ -166,6 +252,80 @@ impl ContractEngine for ProductionEngine {
             artifact_digest: contract.artifact_digest().to_string(),
         })
     }
+
+    fn generate_variant(
+        &self,
+        identity: &str,
+        source: &str,
+        operator: &str,
+    ) -> Result<GeneratedVariant, VariantEngineFailure> {
+        let baseline_source = SourceDocument::new(identity, 0, source);
+        let generation = generate_builtin_variant(vec![baseline_source.clone()], operator)
+            .map_err(|error| {
+                VariantEngineFailure::Invalid(EngineFailure {
+                    message: error.to_string(),
+                    diagnostics: error.diagnostics().to_vec(),
+                })
+            })?;
+        let VariantGeneration::Certified(variant) = generation else {
+            let VariantGeneration::Excluded(exclusion) = generation else {
+                unreachable!()
+            };
+            let diagnostics = exclusion
+                .preconditions()
+                .iter()
+                .filter(|item| item.status == PreconditionStatus::Failed)
+                .map(|item| {
+                    Diagnostic::error(
+                        "XUNLIE-VARIANT-PRECONDITION-FAILED",
+                        format!("{}: {}", item.id, item.explanation),
+                    )
+                })
+                .collect();
+            return Err(VariantEngineFailure::Excluded(EngineFailure {
+                message: format!(
+                    "operator `{}` excluded the input because a precondition failed",
+                    exclusion.operator().id
+                ),
+                diagnostics,
+            }));
+        };
+        let certificate = variant.certificate();
+        Ok(GeneratedVariant {
+            canonical_json: variant.canonical_json().map_err(|error| {
+                VariantEngineFailure::Invalid(EngineFailure::message(error.to_string()))
+            })?,
+            operator: certificate.operator().id.clone(),
+            content_digest: certificate.after().content_digest.to_string(),
+            artifact_digest: certificate.after().artifact_digest.to_string(),
+            baseline_artifact_digest: certificate.before().artifact_digest.to_string(),
+            certificate_digest: certificate.certificate_digest().to_string(),
+        })
+    }
+
+    fn verify_variant(
+        &self,
+        identity: &str,
+        source: &str,
+        artifact: &[u8],
+    ) -> Result<VerifiedVariant, EngineFailure> {
+        let variant: CertifiedVariant = serde_json::from_slice(artifact).map_err(|error| {
+            EngineFailure::message(format!("invalid certified variant JSON: {error}"))
+        })?;
+        verify_certified_variant(vec![SourceDocument::new(identity, 0, source)], &variant)
+            .map_err(|error| EngineFailure {
+                message: error.to_string(),
+                diagnostics: error.diagnostics().to_vec(),
+            })?;
+        let certificate = variant.certificate();
+        Ok(VerifiedVariant {
+            operator: certificate.operator().id.clone(),
+            content_digest: certificate.after().content_digest.to_string(),
+            artifact_digest: certificate.after().artifact_digest.to_string(),
+            baseline_artifact_digest: certificate.before().artifact_digest.to_string(),
+            certificate_digest: certificate.certificate_digest().to_string(),
+        })
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -177,8 +337,16 @@ struct SuccessOutput {
     input: PathBuf,
     #[serde(skip_serializing_if = "Option::is_none")]
     output: Option<PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variant: Option<PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    operator: Option<String>,
     content_digest: String,
     artifact_digest: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    baseline_artifact_digest: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    certificate_digest: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -365,8 +533,12 @@ fn execute(command: &Command, engine: &dyn ContractEngine) -> Result<SuccessOutp
                 status: "ok",
                 input: input.clone(),
                 output: Some(out.clone()),
+                variant: None,
+                operator: None,
                 content_digest: compiled.content_digest,
                 artifact_digest: compiled.artifact_digest,
+                baseline_artifact_digest: None,
+                certificate_digest: None,
             })
         }
         Command::Validate { contract } => {
@@ -398,8 +570,104 @@ fn execute(command: &Command, engine: &dyn ContractEngine) -> Result<SuccessOutp
                 status: "ok",
                 input: contract.clone(),
                 output: None,
+                variant: None,
+                operator: None,
                 content_digest: validated.content_digest,
                 artifact_digest: validated.artifact_digest,
+                baseline_artifact_digest: None,
+                certificate_digest: None,
+            })
+        }
+        Command::Variant {
+            input,
+            operator,
+            out,
+        } => {
+            let source = read(input, "variant")?;
+            let identity = portable_identity(input);
+            let generated = match engine.generate_variant(&identity, &source, operator.id()) {
+                Ok(generated) => generated,
+                Err(VariantEngineFailure::Excluded(failure)) => {
+                    return Err(CommandError::new(
+                        ExitStatus::VariantExcluded,
+                        "XUNLIE-E014",
+                        "variant",
+                        format!("could not generate variant: {}", failure.message),
+                    )
+                    .with_diagnostics(failure.diagnostics));
+                }
+                Err(VariantEngineFailure::Invalid(failure)) => {
+                    return Err(CommandError::new(
+                        ExitStatus::VariantInvalid,
+                        "XUNLIE-E015",
+                        "variant",
+                        format!("variant generation failed closed: {}", failure.message),
+                    )
+                    .with_diagnostics(failure.diagnostics));
+                }
+            };
+            fs::write(out, generated.canonical_json.as_bytes()).map_err(|error| {
+                CommandError::new(
+                    ExitStatus::OutputIo,
+                    "XUNLIE-E013",
+                    "variant",
+                    format!("could not write '{}': {error}", out.display()),
+                )
+            })?;
+
+            Ok(SuccessOutput {
+                schema_version: "xunlie.cli.result/v1",
+                command: "variant",
+                status: "ok",
+                input: input.clone(),
+                output: Some(out.clone()),
+                variant: None,
+                operator: Some(generated.operator),
+                content_digest: generated.content_digest,
+                artifact_digest: generated.artifact_digest,
+                baseline_artifact_digest: Some(generated.baseline_artifact_digest),
+                certificate_digest: Some(generated.certificate_digest),
+            })
+        }
+        Command::VerifyVariant { input, variant } => {
+            let source = read(input, "verify-variant")?;
+            let artifact = fs::read(variant).map_err(|error| {
+                CommandError::new(
+                    ExitStatus::InputIo,
+                    "XUNLIE-E010",
+                    "verify-variant",
+                    format!("could not read '{}': {error}", variant.display()),
+                )
+            })?;
+            let identity = portable_identity(input);
+            let verified = engine
+                .verify_variant(&identity, &source, &artifact)
+                .map_err(|failure| {
+                    CommandError::new(
+                        ExitStatus::VariantInvalid,
+                        "XUNLIE-E015",
+                        "verify-variant",
+                        format!(
+                            "variant '{}' is invalid: {}",
+                            variant.display(),
+                            failure.message
+                        ),
+                    )
+                    .with_diagnostics(failure.diagnostics)
+                })?;
+
+            Ok(SuccessOutput {
+                schema_version: "xunlie.cli.result/v1",
+                command: "verify-variant",
+                status: "ok",
+                input: input.clone(),
+                output: None,
+                variant: Some(variant.clone()),
+                operator: Some(verified.operator),
+                content_digest: verified.content_digest,
+                artifact_digest: verified.artifact_digest,
+                baseline_artifact_digest: Some(verified.baseline_artifact_digest),
+                certificate_digest: Some(verified.certificate_digest),
             })
         }
     }
@@ -427,24 +695,65 @@ fn write_success(
 ) -> io::Result<()> {
     match format {
         OutputFormat::Human => {
-            if let Some(path) = output.output.as_deref() {
-                writeln!(
-                    writer,
-                    "compiled {} -> {}",
-                    output.input.display(),
-                    path.display()
-                )?;
-            } else {
-                writeln!(writer, "valid {}", output.input.display())?;
+            match output.command {
+                "compile" => {
+                    let path = required_result_path(output.output.as_deref(), "output")?;
+                    writeln!(
+                        writer,
+                        "compiled {} -> {}",
+                        output.input.display(),
+                        path.display()
+                    )?;
+                }
+                "validate" => writeln!(writer, "valid {}", output.input.display())?,
+                "variant" => {
+                    let path = required_result_path(output.output.as_deref(), "output")?;
+                    let operator = output.operator.as_deref().ok_or_else(|| {
+                        io::Error::new(
+                            io::ErrorKind::InvalidData,
+                            "variant result is missing operator",
+                        )
+                    })?;
+                    writeln!(
+                        writer,
+                        "certified {} with {} -> {}",
+                        output.input.display(),
+                        operator,
+                        path.display()
+                    )?;
+                }
+                "verify-variant" => {
+                    let path = required_result_path(output.variant.as_deref(), "variant")?;
+                    writeln!(
+                        writer,
+                        "verified {} against {}",
+                        path.display(),
+                        output.input.display()
+                    )?;
+                }
+                _ => writeln!(writer, "completed {}", output.command)?,
             }
             writeln!(writer, "content digest: {}", output.content_digest)?;
-            writeln!(writer, "artifact digest: {}", output.artifact_digest)
+            writeln!(writer, "artifact digest: {}", output.artifact_digest)?;
+            if let Some(digest) = output.certificate_digest.as_deref() {
+                writeln!(writer, "certificate digest: {digest}")?;
+            }
+            Ok(())
         }
         OutputFormat::Json => {
             serde_json::to_writer(&mut *writer, output)?;
             writeln!(writer)
         }
     }
+}
+
+fn required_result_path<'a>(path: Option<&'a Path>, field: &str) -> io::Result<&'a Path> {
+    path.ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("command result is missing {field}"),
+        )
+    })
 }
 
 fn write_error(
@@ -508,6 +817,50 @@ mod tests {
             Ok(ValidatedContract {
                 content_digest: "sha256:fixture".into(),
                 artifact_digest: "sha256:artifact-fixture".into(),
+            })
+        }
+
+        fn generate_variant(
+            &self,
+            _identity: &str,
+            source: &str,
+            operator: &str,
+        ) -> Result<GeneratedVariant, VariantEngineFailure> {
+            if source == "excluded" {
+                return Err(VariantEngineFailure::Excluded(EngineFailure::message(
+                    "fixture excluded",
+                )));
+            }
+            if source == "invalid" {
+                return Err(VariantEngineFailure::Invalid(EngineFailure::message(
+                    "fixture failed closed",
+                )));
+            }
+            Ok(GeneratedVariant {
+                canonical_json: "{\"schemaVersion\":\"xunlie.certified-variant/v1\"}\n".into(),
+                operator: operator.to_owned(),
+                content_digest: "sha256:fixture".into(),
+                artifact_digest: "sha256:variant-artifact".into(),
+                baseline_artifact_digest: "sha256:baseline-artifact".into(),
+                certificate_digest: "sha256:certificate".into(),
+            })
+        }
+
+        fn verify_variant(
+            &self,
+            _identity: &str,
+            _source: &str,
+            artifact: &[u8],
+        ) -> Result<VerifiedVariant, EngineFailure> {
+            if artifact == b"bad" {
+                return Err(EngineFailure::message("fixture invalid"));
+            }
+            Ok(VerifiedVariant {
+                operator: "json.presentation.normalize".into(),
+                content_digest: "sha256:fixture".into(),
+                artifact_digest: "sha256:variant-artifact".into(),
+                baseline_artifact_digest: "sha256:baseline-artifact".into(),
+                certificate_digest: "sha256:certificate".into(),
             })
         }
     }
@@ -614,5 +967,276 @@ mod tests {
             portable_identity(Path::new(r"examples\minimal-source.json")),
             "examples/minimal-source.json"
         );
+    }
+
+    #[derive(Debug, Default)]
+    struct FailingWriter;
+
+    impl Write for FailingWriter {
+        fn write(&mut self, _buffer: &[u8]) -> io::Result<usize> {
+            Err(io::Error::other("fixture writer failed"))
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn success_output(command: &'static str) -> SuccessOutput {
+        SuccessOutput {
+            schema_version: "xunlie.cli.result/v1",
+            command,
+            status: "ok",
+            input: PathBuf::from("source.json"),
+            output: Some(PathBuf::from("output.json")),
+            variant: Some(PathBuf::from("variant.json")),
+            operator: Some("json.presentation.normalize".to_owned()),
+            content_digest: "sha256:fixture".to_owned(),
+            artifact_digest: "sha256:artifact-fixture".to_owned(),
+            baseline_artifact_digest: Some("sha256:baseline".to_owned()),
+            certificate_digest: Some("sha256:certificate".to_owned()),
+        }
+    }
+
+    #[test]
+    fn inline_json_format_is_detected() {
+        assert_eq!(
+            requested_output_format(&[OsString::from("xunlie"), OsString::from("--format=JSON"),]),
+            OutputFormat::Json
+        );
+        assert_eq!(
+            requested_output_format(&[
+                OsString::from("xunlie"),
+                OsString::from("--format"),
+                OsString::from("human"),
+            ]),
+            OutputFormat::Human
+        );
+    }
+
+    #[test]
+    fn variant_success_exclusion_and_invalid_generation_are_distinct() {
+        for (source, expected) in [
+            ("excluded", ExitStatus::VariantExcluded),
+            ("invalid", ExitStatus::VariantInvalid),
+        ] {
+            let directory = tempfile::tempdir().unwrap();
+            let input = directory.path().join("source.json");
+            let output = directory.path().join("variant.json");
+            fs::write(&input, source).unwrap();
+            let mut stdout = Vec::new();
+            let mut stderr = Vec::new();
+            let status = run_with_engine(
+                vec![
+                    OsString::from("xunlie"),
+                    OsString::from("variant"),
+                    input.into_os_string(),
+                    OsString::from("--operator"),
+                    OsString::from("normalize-json"),
+                    OsString::from("--out"),
+                    output.clone().into_os_string(),
+                ],
+                &mut stdout,
+                &mut stderr,
+                &StubEngine,
+            );
+
+            assert_eq!(status, expected);
+            assert!(stdout.is_empty());
+            assert!(!stderr.is_empty());
+            assert!(!output.exists());
+        }
+
+        let directory = tempfile::tempdir().unwrap();
+        let input = directory.path().join("source.json");
+        let output = directory.path().join("variant.json");
+        fs::write(&input, "good").unwrap();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let status = run_with_engine(
+            vec![
+                OsString::from("xunlie"),
+                OsString::from("variant"),
+                input.into_os_string(),
+                OsString::from("--operator"),
+                OsString::from("normalize-json"),
+                OsString::from("--out"),
+                output.clone().into_os_string(),
+            ],
+            &mut stdout,
+            &mut stderr,
+            &StubEngine,
+        );
+
+        assert_eq!(status, ExitStatus::Success);
+        assert!(stderr.is_empty());
+        assert!(String::from_utf8(stdout).unwrap().contains("certified"));
+        assert!(output.exists());
+    }
+
+    #[test]
+    fn variant_output_failure_is_reported_without_success_output() {
+        let directory = tempfile::tempdir().unwrap();
+        let input = directory.path().join("source.json");
+        fs::write(&input, "good").unwrap();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let status = run_with_engine(
+            vec![
+                OsString::from("xunlie"),
+                OsString::from("variant"),
+                input.into_os_string(),
+                OsString::from("--operator"),
+                OsString::from("normalize-json"),
+                OsString::from("--out"),
+                directory.path().as_os_str().to_owned(),
+            ],
+            &mut stdout,
+            &mut stderr,
+            &StubEngine,
+        );
+
+        assert_eq!(status, ExitStatus::OutputIo);
+        assert!(stdout.is_empty());
+        assert!(String::from_utf8(stderr).unwrap().contains("XUNLIE-E013"));
+    }
+
+    #[test]
+    fn verify_variant_covers_success_missing_input_and_invalid_artifact() {
+        let directory = tempfile::tempdir().unwrap();
+        let input = directory.path().join("source.json");
+        let variant = directory.path().join("variant.json");
+        fs::write(&input, "good").unwrap();
+        fs::write(&variant, "good").unwrap();
+
+        let invoke = |variant_path: PathBuf| {
+            let mut stdout = Vec::new();
+            let mut stderr = Vec::new();
+            let status = run_with_engine(
+                vec![
+                    OsString::from("xunlie"),
+                    OsString::from("verify-variant"),
+                    input.clone().into_os_string(),
+                    variant_path.into_os_string(),
+                ],
+                &mut stdout,
+                &mut stderr,
+                &StubEngine,
+            );
+            (status, stdout, stderr)
+        };
+
+        let (status, stdout, stderr) = invoke(variant.clone());
+        assert_eq!(status, ExitStatus::Success);
+        assert!(stderr.is_empty());
+        assert!(String::from_utf8(stdout).unwrap().contains("verified"));
+
+        let (status, stdout, stderr) = invoke(directory.path().join("missing.json"));
+        assert_eq!(status, ExitStatus::InputIo);
+        assert!(stdout.is_empty());
+        assert!(String::from_utf8(stderr).unwrap().contains("XUNLIE-E010"));
+
+        fs::write(&variant, "bad").unwrap();
+        let (status, stdout, stderr) = invoke(variant);
+        assert_eq!(status, ExitStatus::VariantInvalid);
+        assert!(stdout.is_empty());
+        assert!(String::from_utf8(stderr).unwrap().contains("XUNLIE-E015"));
+    }
+
+    #[test]
+    fn writer_failures_return_internal_status() {
+        let mut failing_stdout = FailingWriter;
+        let mut stderr = Vec::new();
+        assert_eq!(
+            run_with_engine(
+                ["xunlie", "--help"],
+                &mut failing_stdout,
+                &mut stderr,
+                &StubEngine,
+            ),
+            ExitStatus::Internal
+        );
+
+        let directory = tempfile::tempdir().unwrap();
+        let input = directory.path().join("source.json");
+        let output = directory.path().join("contract.json");
+        fs::write(&input, "good").unwrap();
+        let mut failing_stdout = FailingWriter;
+        let mut stderr = Vec::new();
+        assert_eq!(
+            run_with_engine(
+                vec![
+                    OsString::from("xunlie"),
+                    OsString::from("compile"),
+                    input.clone().into_os_string(),
+                    OsString::from("--out"),
+                    output.into_os_string(),
+                ],
+                &mut failing_stdout,
+                &mut stderr,
+                &StubEngine,
+            ),
+            ExitStatus::Internal
+        );
+
+        fs::write(&input, "bad").unwrap();
+        let mut stdout = Vec::new();
+        let mut failing_stderr = FailingWriter;
+        assert_eq!(
+            run_with_engine(
+                vec![
+                    OsString::from("xunlie"),
+                    OsString::from("compile"),
+                    input.into_os_string(),
+                    OsString::from("--out"),
+                    directory.path().join("unused.json").into_os_string(),
+                ],
+                &mut stdout,
+                &mut failing_stderr,
+                &StubEngine,
+            ),
+            ExitStatus::Internal
+        );
+    }
+
+    #[test]
+    fn human_rendering_rejects_incomplete_success_and_prints_diagnostics() {
+        let mut missing_output = success_output("compile");
+        missing_output.output = None;
+        assert!(write_success(&mut Vec::new(), OutputFormat::Human, &missing_output).is_err());
+
+        let mut missing_operator = success_output("variant");
+        missing_operator.operator = None;
+        assert!(write_success(&mut Vec::new(), OutputFormat::Human, &missing_operator).is_err());
+
+        let mut missing_variant = success_output("verify-variant");
+        missing_variant.variant = None;
+        assert!(write_success(&mut Vec::new(), OutputFormat::Human, &missing_variant).is_err());
+
+        let mut fallback = Vec::new();
+        write_success(
+            &mut fallback,
+            OutputFormat::Human,
+            &success_output("future-command"),
+        )
+        .unwrap();
+        assert!(
+            String::from_utf8(fallback)
+                .unwrap()
+                .contains("completed future-command")
+        );
+
+        let error = CommandError::new(
+            ExitStatus::CompileFailed,
+            "XUNLIE-E011",
+            "compile",
+            "fixture rejected",
+        )
+        .with_diagnostics(vec![Diagnostic::error("XUNLIE-TEST", "detail")]);
+        let mut rendered = Vec::new();
+        write_error(&mut rendered, OutputFormat::Human, &error).unwrap();
+        let rendered = String::from_utf8(rendered).unwrap();
+        assert!(rendered.contains("XUNLIE-E011"));
+        assert!(rendered.contains("XUNLIE-TEST: detail"));
     }
 }

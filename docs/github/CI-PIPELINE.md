@@ -34,12 +34,17 @@ Ejecuta en cada PR, push a `main` y bajo demanda:
 | Job | Evidencia |
 |---|---|
 | `msrv-1.85.0` | el workspace compila con la versión mínima declarada |
-| `coverage` | cobertura de líneas mínima del 75 % y reporte LCOV descargable |
+| `coverage` | cobertura global del producto ≥90 % líneas/≥85 % ramas y reporte LCOV descargable |
 | `fuzz-source-parser` | campaña libFuzzer acotada contra el límite público del compilador |
+| `mutation-certified-variants` | `cargo-mutants 27.1.0` exige que la suite detecte mutaciones en certificados y generación |
 
 El fuzzing usa `nightly-2026-08-01`, `cargo-fuzz 0.13.2`, lockfile independiente y corpus
 versionado. El umbral de cobertura es un piso de regresión, no una sustitución de pruebas
 dirigidas.
+
+Mutation testing usa `.cargo/mutants.toml` para limitar la campaña a la frontera crítica de M2,
+ejecuta sin orden aleatorio y publica `mutants.out` incluso ante fallo. Un mutante no detectado hace
+fallar el job; ampliar o reducir el alcance requiere revisión explícita de riesgo.
 
 ## `release.yml`
 
@@ -66,6 +71,6 @@ El job de publicación es el único con `contents: write`, `id-token: write` y
 
 ## Controles posteriores
 
-Mutation testing prolongado, replay, caos, benchmarks y comparación de builds independientes
-pertenecen a milestones posteriores. No se presentan como controles activos hasta que exista un
-workflow reproducible y su check haya pasado en `main`.
+Replay de variantes y mutation testing dirigido están activos desde M2. Campañas globales
+prolongadas, caos, benchmarks y comparación de builds independientes pertenecen a milestones
+posteriores y no se presentan como controles activos antes de contar con workflows reproducibles.

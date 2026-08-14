@@ -7,6 +7,14 @@ usa [versionado semántico](https://semver.org/lang/es/).
 
 ## [Unreleased]
 
+### Added
+
+- M2 certified history variants with executable preconditions, deterministic replay, and
+  `xunlie.equivalence-certificate/v1` evidence.
+- Built-in JSON-normalization and independent-add reversal operators.
+- CLI `variant` and `verify-variant` commands with stable exclusion and verification exit codes.
+- Golden, metamorphic, tamper, exclusion, and directed mutation testing for variant logic.
+
 ## [0.1.0] - 2026-08-13
 
 ### Added

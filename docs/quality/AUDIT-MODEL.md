@@ -32,7 +32,8 @@ La semilla, población y consulta de selección se registran para impedir cherry
 2. **Integridad:** digest/atestación corresponde al contenido.
 3. **Pertinencia:** la evidencia observa la obligación correcta.
 4. **Temporalidad:** se produjo antes de la aprobación.
-5. **Independencia:** autor, aprobador y verifier cumplen separación.
+5. **Independencia:** autor, cada revisor y verifier son instancias separadas; el registro demuestra
+   tarea, permisos, candidato y veredicto, y el orquestador no cuenta como voto.
 6. **Reproducibilidad:** control crítico se reejecuta con mismo resultado o variación explicada.
 7. **Cierre:** finding/CAPA posee prueba de eficacia.
 
@@ -65,4 +66,3 @@ Un `Major` bloquea. Tres `Minor` con causa común abren CAPA sistémica.
 ## Criterio “perfecto”
 
 La auditoría del gate es perfecta (`100/100`) cuando la población aplicable está completa, cada control tiene evidencia válida, toda la trazabilidad es bidireccional, no hay blocker y la aprobación es independiente. No afirma ausencia absoluta de defectos; afirma que el proceso definido operó sin excepción oculta.
-

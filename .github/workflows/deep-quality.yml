@@ -42,16 +42,25 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install pinned coverage toolchain
+        run: rustup toolchain install nightly-2026-08-01 --profile minimal
       - name: Install LLVM coverage tools
-        run: rustup component add llvm-tools-preview
+        run: rustup component add llvm-tools-preview --toolchain nightly-2026-08-01
       - name: Install pinned coverage runner
         run: cargo install cargo-llvm-cov --version 0.8.7 --locked
       - name: Create coverage output directory
         run: mkdir -p coverage
+      - name: Test coverage evidence verifier
+        run: python3 -m unittest scripts/test_check_lcov_thresholds.py
       - name: Enforce line coverage and write LCOV
         run: >-
-          cargo llvm-cov --workspace --all-features --all-targets --locked
-          --lcov --output-path coverage/lcov.info --fail-under-lines 75
+          cargo +nightly-2026-08-01 llvm-cov --workspace --exclude xtask
+          --all-features --all-targets --locked
+          --branch --lcov --output-path coverage/lcov.info --fail-under-lines 90
+      - name: Enforce normative line and branch thresholds
+        run: >-
+          python3 scripts/check_lcov_thresholds.py
+          coverage/lcov.info quality/quality-plan.json
       - name: Upload LCOV report
         if: always() && hashFiles('coverage/lcov.info') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -59,7 +68,7 @@ jobs:
           name: xunlie-lcov
           path: coverage/lcov.info
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 90
 
   fuzz-smoke:
     name: fuzz-source-parser
@@ -82,3 +91,32 @@ jobs:
         run: >-
           cargo +nightly-2026-08-01 fuzz run source_parser
           -- -max_total_time=30 -rss_limit_mb=2048
+      - name: Fuzz certified variant bundles
+        run: >-
+          cargo +nightly-2026-08-01 fuzz run certified_variant
+          -- -max_total_time=30 -rss_limit_mb=2048
+
+  mutation-variants:
+    name: mutation-certified-variants
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned mutation runner
+        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2.85.13
+        with:
+          tool: cargo-mutants@27.1.0
+      - name: Test certificate and variant mutations
+        run: >-
+          cargo mutants --in-place --no-shuffle --minimum-test-timeout 20
+      - name: Upload mutation report
+        if: always() && hashFiles('mutants.out/**') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: xunlie-variant-mutation-report
+          path: mutants.out
+          if-no-files-found: error
+          retention-days: 90

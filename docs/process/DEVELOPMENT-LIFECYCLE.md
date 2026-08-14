@@ -21,7 +21,9 @@ flowchart LR
 
 Todo cambio nace como issue tipado: feature, defecto, riesgo, arquitectura, dependencia o proceso. Se identifica la necesidad, usuario/amenaza, resultado esperado y urgencia. Product y Quality convierten la necesidad en criterio observable.
 
-La IA puede proponer requisitos o código, pero el responsable humano confirma intención, procedencia y criterios.
+La IA puede proponer requisitos o código. El Product Owner confirma intención, procedencia y
+criterios; cuando esa decisión implique responsabilidad jurídica o riesgo de negocio, la autoridad
+permanece en el titular humano del repositorio.
 
 ## 2. Análisis de impacto
 
@@ -38,7 +40,9 @@ Antes de construir se identifican requisitos, componentes, contratos, seguridad,
 
 ## 4. Pull request
 
-La plantilla exige IDs de requisito, riesgo, arquitectura y evidencia. El autor declara uso de IA, fuentes y validación efectuada cuando sea material. Bots no aprueban cambios; solo aportan evidencia.
+La plantilla exige IDs de requisito, riesgo, arquitectura y evidencia. El autor declara uso de IA,
+fuentes y validación efectuada cuando sea material. Los checks automáticos solo aportan evidencia;
+las instancias revisoras orquestadas sí pueden emitir un veredicto cuando cumplen ADR-0004.
 
 La revisión considera corrección, estados de fallo, responsabilidad del componente, observabilidad, seguridad, mantenibilidad y simplicidad. Los comentarios críticos deben resolverse, no solo responderse.
 
@@ -63,4 +67,3 @@ Incidentes, falsos positivos, escapes y actualizaciones de herramientas regresan
 | mensual | actualización controlada de toolchain/dependencias y muestreo de auditoría |
 | trimestral | arquitectura, threat model, métricas, estado del arte y eficacia del SQ Plan |
 | por release | G4/G5, SBOM/provenance, recuperación y audit trail |
-

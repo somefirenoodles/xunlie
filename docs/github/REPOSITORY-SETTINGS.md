@@ -26,11 +26,12 @@ El ruleset de rama con ID `20826197` está en enforcement `active`, sin bypass:
 - descarta aprobaciones obsoletas tras nuevos commits;
 - exige resolver todas las conversaciones;
 - exige que la rama esté actualizada con `main` antes de integrar;
-- actualmente requiere el check `validate-quality-system`.
+- requiere los checks bloqueantes enumerados abajo.
 
-La lista de checks se amplía después de que los nombres nuevos hayan aparecido y pasado en una PR.
-Los checks objetivo de este incremento son:
+La lista se amplía solo después de que un nombre nuevo haya aparecido y pasado en una PR. Los checks
+obligatorios actuales son:
 
+- `validate-quality-system`;
 - `rustfmt-and-clippy`;
 - `tests-ubuntu-24.04`;
 - `tests-windows-2025`;
@@ -38,7 +39,8 @@ Los checks objetivo de este incremento son:
 - `codeql-rust`;
 - `msrv-1.85.0`;
 - `coverage`;
-- `fuzz-source-parser`.
+- `fuzz-source-parser`;
+- `mutation-certified-variants`.
 
 No se configura como obligatorio un nombre inexistente: primero se ejecuta el workflow, después se
 verifica la evidencia y finalmente se actualiza el ruleset.
@@ -53,13 +55,15 @@ workflow valida además SemVer, coincidencia con la versión del workspace y per
 Los binarios se publican con checksums SHA-256 y build provenance. No se declara firma nativa de
 binarios ni reproducibilidad bit a bit hasta disponer de un segundo constructor independiente.
 
-## Límite de independencia
+## Independencia técnica y límite de GitHub
 
-El repositorio tiene una sola identidad operativa. Por ello el ruleset exige cero aprobaciones: una
-autoaprobación no aportaría independencia real. `DEC-011` mantiene bloqueada la afirmación de un
-gate independiente hasta incorporar un segundo maintainer o auditor.
+El repositorio tiene una sola identidad de GitHub, por lo que el ruleset exige cero aprobaciones:
+una autoaprobación remota no aportaría separación. La independencia técnica de los gates se aplica
+en cambio mediante `xunlie.review-orchestration/v1`: instancias revisoras separadas, sin autoría ni
+escritura, examinan un SHA congelado y sus veredictos se conservan como evidencia del PR y del
+GateRecord. GitHub hace cumplir los checks; el protocolo hace revisable la decisión.
 
-Cuando exista esa capacidad, la elevación prevista es:
+Si se incorpora una segunda identidad humana, la elevación prevista es:
 
 - una aprobación general y dos para dominio, seguridad, workflows, arquitectura y release;
 - CODEOWNERS y aprobación del último push por una persona distinta;

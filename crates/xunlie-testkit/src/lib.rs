@@ -17,6 +17,10 @@ pub const MINIMAL_SOURCE_JSON: &str = include_str!("../fixtures/minimal-source.j
 /// Syntactically valid JSON that is not a supported Xunlie source.
 pub const INVALID_SOURCE_JSON: &str = include_str!("../fixtures/invalid-source.json");
 
+/// Two commutative additions used by certified history-variant tests.
+pub const INDEPENDENT_ADDS_SOURCE_JSON: &str =
+    include_str!("../fixtures/independent-adds-source.json");
+
 /// A disposable filesystem root with convenience methods for arranging tests.
 #[derive(Debug)]
 pub struct FixtureWorkspace {
@@ -135,5 +139,6 @@ mod tests {
     fn embedded_sources_are_json() {
         serde_json::from_str::<serde_json::Value>(MINIMAL_SOURCE_JSON).unwrap();
         serde_json::from_str::<serde_json::Value>(INVALID_SOURCE_JSON).unwrap();
+        serde_json::from_str::<serde_json::Value>(INDEPENDENT_ADDS_SOURCE_JSON).unwrap();
     }
 }

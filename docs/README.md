@@ -7,6 +7,7 @@ producto, empieza por el [README principal](../README.md) y la
 ## Diseño y alcance
 
 - [Arquitectura](architecture/ARCHITECTURE.md)
+- [Variantes certificadas M2](architecture/CERTIFIED-VARIANTS.md)
 - [Requisitos](requirements/REQUIREMENTS.md)
 - [Roadmap](process/DELIVERY-ROADMAP.md)
 - [Trazabilidad de investigación](research/RESEARCH-TRACE.md)
@@ -32,4 +33,6 @@ producto, empieza por el [README principal](../README.md) y la
 
 - [ADR-0001: núcleo y adaptadores](architecture/ADR-0001-CORE-AND-ADAPTERS.md)
 - [ADR-0002: evidence store](architecture/ADR-0002-EVIDENCE-STORE.md)
+- [ADR-0003: variantes certificadas](architecture/ADR-0003-CERTIFIED-VARIANTS.md)
+- [ADR-0004: revisión orquestada](architecture/ADR-0004-ORCHESTRATED-REVIEW.md)
 - [Decisiones abiertas](decisions/OPEN-DECISIONS.md)

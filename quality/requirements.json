@@ -41,7 +41,7 @@
       "acceptance": ["Cada variante incluye operador, precondiciones, digests before/after y certificado.", "Una precondición fallida excluye la variante y explica la causa."],
       "risk": "critical",
       "ownerRole": "Chief Architect",
-      "status": "proposed"
+      "status": "implemented"
     },
     {
       "id": "REQ-F-005",

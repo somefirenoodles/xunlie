@@ -1,0 +1,7 @@
+# M2's critical equivalence boundary. Expanding this scope is an explicit risk decision.
+examine_globs = [
+  "crates/xunlie-domain/src/variant.rs",
+  "crates/xunlie-engine/src/variant.rs",
+]
+additional_cargo_args = ["--locked"]
+all_features = true

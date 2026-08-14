@@ -4,18 +4,29 @@
 
 use core::fmt;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use xunlie_domain::{
     ContractIr, ContractMetadata, Diagnostic, History, HistoryEvent, Operation, Precedence,
     ResolutionPolicy, Sha256Digest, SourceIdentity, SourceLocation, SourceRecord, resolve_history,
 };
 
+mod variant;
+
+pub use variant::{
+    BUILTIN_OPERATOR_IDS, BUILTIN_OPERATOR_VERSION, CERTIFIED_VARIANT_SCHEMA_VERSION,
+    CertifiedVariant, ExcludedVariant, JSON_NORMALIZATION_OPERATOR_ID, JsonNormalizationOperator,
+    REVERSE_INDEPENDENT_ADDS_OPERATOR_ID, ReverseIndependentAddsOperator, VariantError,
+    VariantGeneration, VariantOperator, generate_builtin_variant, generate_certified_variant,
+    verify_certified_variant, verify_certified_variant_with_operator,
+};
+
 /// Schema identifier accepted by the M1 JSON source compiler.
 pub const SOURCE_SCHEMA_VERSION: &str = "xunlie.source/v1";
 
 /// Exact source content plus caller-controlled identity and history position.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SourceDocument {
     identity: String,
     position: usize,
@@ -360,5 +371,50 @@ mod tests {
             diagnostics[0].code,
             "XUNLIE-CONTRACT-ARTIFACT-DIGEST-MISMATCH"
         );
+    }
+
+    #[test]
+    fn empty_sources_invalid_identity_and_schema_fail_closed() {
+        let empty = compile_sources(Vec::new()).unwrap_err();
+        assert_eq!(empty.diagnostics()[0].code, "XUNLIE-SOURCE-EMPTY-SET");
+        assert_eq!(
+            empty.into_diagnostics()[0].message,
+            "at least one source document is required"
+        );
+
+        let invalid_identity = compile_sources(vec![SourceDocument::new("", 7, ADD)]).unwrap_err();
+        assert_eq!(
+            invalid_identity.diagnostics()[0].code,
+            "XUNLIE-SOURCE-INVALID-IDENTITY"
+        );
+
+        let unsupported = ADD.replace("xunlie.source/v1", "xunlie.source/v999");
+        let unsupported = compile_sources(vec![SourceDocument::new(
+            "memory://unsupported",
+            3,
+            &unsupported,
+        )])
+        .unwrap_err();
+        assert_eq!(
+            unsupported.diagnostics()[0].code,
+            "XUNLIE-SOURCE-UNSUPPORTED-SCHEMA"
+        );
+        assert_eq!(
+            unsupported.diagnostics()[0]
+                .primary
+                .as_ref()
+                .unwrap()
+                .source_position,
+            3
+        );
+    }
+
+    #[test]
+    fn source_document_accessors_and_display_are_stable() {
+        let source = SourceDocument::new("memory://fixture", 4, ADD);
+        assert_eq!(source.identity(), "memory://fixture");
+        assert_eq!(source.position(), 4);
+        assert_eq!(source.source(), ADD);
+        assert_eq!(source.to_string(), "memory://fixture@4");
     }
 }

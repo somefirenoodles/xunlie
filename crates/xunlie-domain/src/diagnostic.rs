@@ -140,3 +140,41 @@ impl fmt::Display for Diagnostic {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn location(operation_position: Option<usize>) -> SourceLocation {
+        let location = SourceLocation::source(
+            SourceIdentity::new("memory://fixture").unwrap(),
+            Sha256Digest::of_bytes("fixture"),
+            2,
+        );
+        operation_position.map_or(location.clone(), |position| location.at_operation(position))
+    }
+
+    #[test]
+    fn diagnostic_display_covers_source_and_operation_locations() {
+        let without_operation = Diagnostic::error("XUNLIE-TEST", "failed")
+            .with_primary(location(None))
+            .with_related("related", location(Some(3)));
+        assert_eq!(
+            without_operation.to_string(),
+            "XUNLIE-TEST: failed [memory://fixture at source 2, operation ?]"
+        );
+        assert_eq!(without_operation.related.len(), 1);
+
+        let with_operation =
+            Diagnostic::error("XUNLIE-TEST", "failed").with_primary(location(Some(3)));
+        assert_eq!(
+            with_operation.to_string(),
+            "XUNLIE-TEST: failed [memory://fixture at source 2, operation 3]"
+        );
+
+        assert_eq!(
+            Diagnostic::error("XUNLIE-TEST", "failed").to_string(),
+            "XUNLIE-TEST: failed"
+        );
+    }
+}

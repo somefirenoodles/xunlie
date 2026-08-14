@@ -27,8 +27,11 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Validate quality contracts and traceability
         run: python3 scripts/validate_quality_system.py
+      - name: Test fail-closed governance validation
+        run: python3 -m unittest scripts/test_validate_quality_system.py
 
   rust-static-analysis:
     name: rustfmt-and-clippy

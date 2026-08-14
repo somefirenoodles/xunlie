@@ -8,8 +8,11 @@ Este documento define la revisión previa a finalizar cada etapa. Los identifica
 2. El validador calcula aplicabilidad y comprueba integridad.
 3. Quality muestrea evidencia, reproduce controles críticos y registra findings.
 4. El dueño corrige o solicita un waiver válido.
-5. Un aprobador independiente emite `GO`, `REWORK` o `BLOCKED`.
-6. Solo `GO` permite declarar la etapa terminada; para PR se usa `MERGE`.
+5. El orquestador asigna revisores que no participaron en la autoría, congela el SHA y registra por
+   revisor identidad de instancia, tarea, alcance, comandos, findings, hora y veredicto.
+6. Cada revisor emite `GO`, `REWORK` o `BLOCKED`; el orquestador solo agrega. La decisión positiva
+   exige el quorum definido en `quality/roles.json`, unanimidad y cero findings críticos/altos.
+7. Solo el resultado agregado positivo permite declarar la etapa terminada; para PR se usa `MERGE`.
 
 La evidencia no puede crearse después de la aprobación para justificarla retroactivamente.
 
@@ -41,7 +44,11 @@ La evidencia no puede crearse después de la aprobación para justificarla retro
 **Controles específicos:** formato, lint, unit/property/contract tests, cobertura diferencial, compatibilidad, licencias y workflow security.  
 **Salida:** commit integrado en `main`, evidencia ligada a SHA y sin deuda anónima.
 
-Para cambios de dominio, protocolo, seguridad o CI se exige segundo aprobador y mutation/property tests aplicables.
+G3 siempre exige al menos dos instancias revisoras independientes y mutation/property tests
+aplicables. Los revisores operan en solo lectura sobre el mismo candidato; si el autor lo cambia,
+los veredictos quedan obsoletos y se repite la revisión. Después del veredicto solo se permite un
+commit administrativo que añada el informe y GateRecord en las rutas declaradas por el protocolo;
+el validador comprueba que no exista ningún otro cambio.
 
 ## G4 — Integración y validación
 
@@ -77,9 +84,10 @@ Para cambios de dominio, protocolo, seguridad o CI se exige segundo aprobador y 
 - evidencia ausente, alterada o no ligada al commit;
 - vulnerabilidad crítica/alta abierta en release;
 - secreto confirmado;
-- aprobación propia o bypass no justificado;
+- aprobación de la instancia autora, identidad revisora duplicada o bypass no justificado;
+- candidato modificado después de un veredicto sin nueva revisión;
+- quorum incompleto, veredictos positivos no unánimes o finding crítico/alto abierto;
 - waiver vencido;
 - firma, checksum o procedencia inválidos;
 - resultado crítico flaky o no reproducible;
 - decisión abierta clasificada como bloqueante.
-
