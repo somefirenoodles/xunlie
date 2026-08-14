@@ -44,9 +44,11 @@ La evidencia no puede crearse después de la aprobación para justificarla retro
 **Controles específicos:** formato, lint, unit/property/contract tests, cobertura diferencial, compatibilidad, licencias y workflow security.  
 **Salida:** commit integrado en `main`, evidencia ligada a SHA y sin deuda anónima.
 
-Para cambios de dominio, protocolo, seguridad o CI se exigen al menos dos instancias revisoras
-independientes y mutation/property tests aplicables. Los revisores operan en solo lectura sobre el
-mismo candidato; si el autor lo cambia, los veredictos quedan obsoletos y se repite la revisión.
+G3 siempre exige al menos dos instancias revisoras independientes y mutation/property tests
+aplicables. Los revisores operan en solo lectura sobre el mismo candidato; si el autor lo cambia,
+los veredictos quedan obsoletos y se repite la revisión. Después del veredicto solo se permite un
+commit administrativo que añada el informe y GateRecord en las rutas declaradas por el protocolo;
+el validador comprueba que no exista ningún otro cambio.
 
 ## G4 — Integración y validación
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Iterable
@@ -111,8 +112,54 @@ def validate_review_quorum(record: dict[str, Any], record_id: str, roles_doc: di
         error(f"{record_id}: approver must identify the orchestrated review quorum")
 
     candidate = record.get("candidate")
-    if not isinstance(candidate, str) or not re.fullmatch(r"[^@\s]+@[0-9a-f]{40}", candidate):
+    candidate_match = (
+        re.fullmatch(r"([^@\s]+)@([0-9a-f]{40})", candidate) if isinstance(candidate, str) else None
+    )
+    if candidate_match is None:
         error(f"{record_id}: positive decision requires repository@40-hex candidate")
+    else:
+        repository, candidate_sha = candidate_match.groups()
+        if repository != roles_doc.get("repository"):
+            error(f"{record_id}: candidate repository differs from the governed repository")
+        exists = subprocess.run(
+            ["git", "-C", str(ROOT), "cat-file", "-e", f"{candidate_sha}^{{commit}}"],
+            capture_output=True,
+            check=False,
+        )
+        if exists.returncode != 0:
+            error(f"{record_id}: candidate commit does not exist in the checked-out history")
+        else:
+            ancestor = subprocess.run(
+                ["git", "-C", str(ROOT), "merge-base", "--is-ancestor", candidate_sha, "HEAD"],
+                capture_output=True,
+                check=False,
+            )
+            if ancestor.returncode != 0:
+                error(f"{record_id}: candidate commit is not an ancestor of the assessed tree")
+            else:
+                diff = subprocess.run(
+                    [
+                        "git",
+                        "-C",
+                        str(ROOT),
+                        "diff",
+                        "--name-status",
+                        f"{candidate_sha}..HEAD",
+                    ],
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                )
+                allowed_paths = protocol.get("administrativeEvidencePaths", [])
+                if diff.returncode != 0:
+                    error(f"{record_id}: cannot inspect changes after the reviewed candidate")
+                else:
+                    for line in diff.stdout.splitlines():
+                        status, _, path = line.partition("\t")
+                        if status != "A" or not any(path.startswith(prefix) for prefix in allowed_paths):
+                            error(
+                                f"{record_id}: non-evidence change `{status} {path}` invalidates reviewer verdicts"
+                            )
 
     created_at = record.get("createdAt")
     if not isinstance(created_at, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", created_at):
@@ -126,7 +173,9 @@ def validate_review_quorum(record: dict[str, Any], record_id: str, roles_doc: di
     if not isinstance(reviewers, list):
         error(f"{record_id}: positive decision requires a reviewer list")
         return
-    minimum_key = "criticalChangeReviewers" if record.get("criticalChange") is True else "minimumIndependentReviewers"
+    critical_gates = set(protocol.get("criticalGateQuorum", []))
+    requires_critical_quorum = record.get("criticalChange") is True or record.get("gateId") in critical_gates
+    minimum_key = "criticalChangeReviewers" if requires_critical_quorum else "minimumIndependentReviewers"
     minimum = protocol.get(minimum_key)
     if not isinstance(minimum, int) or minimum < 1:
         error(f"roles.reviewProtocol.{minimum_key}: must be a positive integer")
@@ -256,6 +305,9 @@ def validate_gate_metadata(
     if not isinstance(external_evidence, list) or not external_evidence:
         error(f"{record_id}: externalEvidence must be a non-empty list")
     else:
+        candidate = record.get("candidate", "")
+        candidate_sha = candidate.rsplit("@", 1)[-1]
+        actions_bound = False
         for position, item in enumerate(external_evidence):
             context = f"{record_id}.externalEvidence[{position}]"
             if not isinstance(item, dict):
@@ -270,6 +322,12 @@ def validate_gate_metadata(
                 r"(?:sha256:[0-9a-f]{64}|github-actions-head:[0-9a-f]{40})", integrity
             ):
                 error(f"{context}: integrity must bind a SHA-256 digest or Actions head SHA")
+            elif integrity.startswith("github-actions-head:"):
+                actions_bound = True
+                if integrity.removeprefix("github-actions-head:") != candidate_sha:
+                    error(f"{context}: Actions evidence is bound to a different candidate SHA")
+        if not actions_bound:
+            error(f"{record_id}: externalEvidence must bind at least one Actions run to the candidate SHA")
 
 
 def main() -> int:
@@ -386,10 +444,12 @@ def main() -> int:
             "schemaVersion",
             "minimumIndependentReviewers",
             "criticalChangeReviewers",
+            "criticalGateQuorum",
             "frozenCandidateRequired",
             "reviewerMayModifyCandidate",
             "unanimousPositiveDecisionRequired",
             "blockingSeverities",
+            "administrativeEvidencePaths",
             "requiredEvidence",
         }
         if not isinstance(protocol, dict) or not required_protocol_fields.issubset(protocol):
@@ -399,10 +459,13 @@ def main() -> int:
             or protocol.get("minimumIndependentReviewers", 0) < 1
             or type(protocol.get("criticalChangeReviewers")) is not int
             or protocol.get("criticalChangeReviewers", 0) < 2
+            or set(protocol.get("criticalGateQuorum", [])) != {"G3", "G5"}
             or protocol.get("frozenCandidateRequired") is not True
             or protocol.get("reviewerMayModifyCandidate") is not False
             or protocol.get("unanimousPositiveDecisionRequired") is not True
             or set(protocol.get("blockingSeverities", [])) != {"critical", "high"}
+            or set(protocol.get("administrativeEvidencePaths", []))
+            != {"docs/audit/", "quality/assessments/"}
             or set(protocol.get("requiredEvidence", []))
             != {"reviewerId", "task", "scope", "candidate", "verdict", "commands", "findings", "timestamp"}
         ):

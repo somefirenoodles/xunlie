@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 import unittest
 
 from scripts import validate_quality_system as validator
@@ -15,13 +16,16 @@ class ReviewQuorumTests(unittest.TestCase):
         validator.ERRORS.clear()
         with (validator.ROOT / "quality/roles.json").open(encoding="utf-8") as handle:
             self.roles = json.load(handle)
+        self.candidate_sha = subprocess.check_output(
+            ["git", "-C", str(validator.ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
         evidence = "README.md"
         digest = "sha256:" + hashlib.sha256((validator.ROOT / evidence).read_bytes()).hexdigest()
         reviewer = {
             "reviewerId": "/review/security",
             "task": "adversarial security review",
             "scope": "domain integrity",
-            "candidate": "somefirenoodles/xunlie@" + "a" * 40,
+            "candidate": "somefirenoodles/xunlie@" + self.candidate_sha,
             "verdict": "GO",
             "commands": ["cargo test --workspace --locked"],
             "findings": [],
@@ -34,6 +38,7 @@ class ReviewQuorumTests(unittest.TestCase):
         second["task"] = "reproducibility review"
         self.record = {
             "recordId": "TEST-G3",
+            "gateId": "G3",
             "decision": "MERGE",
             "candidate": reviewer["candidate"],
             "author": "/author",
@@ -71,6 +76,7 @@ class ReviewQuorumTests(unittest.TestCase):
         self.assertTrue(any("evidence digest mismatch" in item for item in validator.ERRORS))
 
     def test_rejects_incomplete_critical_quorum(self) -> None:
+        self.record["criticalChange"] = False
         self.record["reviewers"].pop()
         validator.validate_review_quorum(self.record, "TEST-G3", self.roles)
         self.assertTrue(any("below required 2" in item for item in validator.ERRORS))
@@ -89,7 +95,7 @@ class ReviewQuorumTests(unittest.TestCase):
                     {
                         "name": "required checks",
                         "url": "https://github.com/somefirenoodles/xunlie/actions/runs/1",
-                        "integrity": "github-actions-head:" + "a" * 40,
+                        "integrity": "github-actions-head:" + self.candidate_sha,
                     }
                 ],
             }
@@ -102,6 +108,53 @@ class ReviewQuorumTests(unittest.TestCase):
             {"TOOL-RUST"},
         )
         self.assertEqual([], validator.ERRORS)
+
+    def test_rejects_nonexistent_candidate_commit(self) -> None:
+        candidate = "somefirenoodles/xunlie@" + "f" * 40
+        self.record["candidate"] = candidate
+        for reviewer in self.record["reviewers"]:
+            reviewer["candidate"] = candidate
+        validator.validate_review_quorum(self.record, "TEST-G3", self.roles)
+        self.assertTrue(any("candidate commit does not exist" in item for item in validator.ERRORS))
+
+    def test_rejects_non_evidence_change_after_candidate(self) -> None:
+        parent_sha = subprocess.check_output(
+            ["git", "-C", str(validator.ROOT), "rev-parse", "HEAD^"], text=True
+        ).strip()
+        candidate = "somefirenoodles/xunlie@" + parent_sha
+        self.record["candidate"] = candidate
+        for reviewer in self.record["reviewers"]:
+            reviewer["candidate"] = candidate
+        validator.validate_review_quorum(self.record, "TEST-G3", self.roles)
+        self.assertTrue(any("invalidates reviewer verdicts" in item for item in validator.ERRORS))
+
+    def test_rejects_actions_evidence_from_another_candidate(self) -> None:
+        self.record.update(
+            {
+                "pullRequest": "https://github.com/somefirenoodles/xunlie/pull/11",
+                "requirements": ["REQ-F-004"],
+                "risks": ["RISK-001"],
+                "residualRisks": [
+                    {"id": "RISK-001", "disposition": "bounded", "rationale": "Scoped to M2."}
+                ],
+                "tools": [{"id": "TOOL-RUST", "version": "1.97.1"}],
+                "externalEvidence": [
+                    {
+                        "name": "wrong run",
+                        "url": "https://github.com/somefirenoodles/xunlie/actions/runs/1",
+                        "integrity": "github-actions-head:" + "b" * 40,
+                    }
+                ],
+            }
+        )
+        validator.validate_gate_metadata(
+            self.record,
+            "TEST-G3",
+            {"REQ-F-004"},
+            {"RISK-001"},
+            {"TOOL-RUST"},
+        )
+        self.assertTrue(any("different candidate SHA" in item for item in validator.ERRORS))
 
     def test_rejects_undecided_risk_and_unpinned_tool(self) -> None:
         self.record.update(

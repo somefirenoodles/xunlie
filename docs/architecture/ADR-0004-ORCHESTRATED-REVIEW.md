@@ -25,10 +25,14 @@ Se adopta `xunlie.review-orchestration/v1` como protocolo de independencia técn
 2. asigna revisores que no participaron en la autoría y les prohíbe modificar el candidato;
 3. registra para cada instancia identidad, tarea, alcance, candidate, comandos, findings, hora y
    veredicto;
-4. los cambios críticos de dominio, protocolo, seguridad, CI o release requieren al menos dos
-   revisores independientes; los demás, al menos uno;
+4. G3 y G5 siempre aplican el quorum crítico de al menos dos revisores; fuera de esos gates, los
+   cambios críticos de dominio, protocolo, seguridad, CI o release también requieren ese quorum y
+   los demás, al menos uno;
 5. un resultado positivo requiere unanimidad y cero findings críticos/altos abiertos;
-6. un cambio posterior invalida los veredictos y obliga a revisar el nuevo candidate;
+6. un cambio posterior invalida los veredictos y obliga a revisar el nuevo candidate, salvo un
+   commit administrativo que únicamente añada el informe y GateRecord bajo `docs/audit/` y
+   `quality/assessments/`; el validador compara el diff y rechaza modificaciones, borrados u otras
+   rutas;
 7. el orquestador agrega los resultados, pero no aporta un voto revisor.
 
 El GateRecord conserva el quorum y enlaza un informe dentro del repositorio. La PR conserva la

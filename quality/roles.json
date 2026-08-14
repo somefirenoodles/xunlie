@@ -1,6 +1,7 @@
 {
   "schemaVersion": "xunlie.quality.roles/v1",
   "baselineVersion": "0.1.0",
+  "repository": "somefirenoodles/xunlie",
   "repositoryOwner": "somefirenoodles",
   "operatingModel": "orchestrated-multi-agent",
   "independenceFeasible": true,
@@ -24,10 +25,12 @@
     "schemaVersion": "xunlie.review-orchestration/v1",
     "minimumIndependentReviewers": 1,
     "criticalChangeReviewers": 2,
+    "criticalGateQuorum": ["G3", "G5"],
     "frozenCandidateRequired": true,
     "reviewerMayModifyCandidate": false,
     "unanimousPositiveDecisionRequired": true,
     "blockingSeverities": ["critical", "high"],
+    "administrativeEvidencePaths": ["docs/audit/", "quality/assessments/"],
     "requiredEvidence": ["reviewerId", "task", "scope", "candidate", "verdict", "commands", "findings", "timestamp"]
   }
 }
