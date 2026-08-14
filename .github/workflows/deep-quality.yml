@@ -42,8 +42,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install pinned coverage toolchain
+        run: rustup toolchain install nightly-2026-08-01 --profile minimal
       - name: Install LLVM coverage tools
-        run: rustup component add llvm-tools-preview
+        run: rustup component add llvm-tools-preview --toolchain nightly-2026-08-01
       - name: Install pinned coverage runner
         run: cargo install cargo-llvm-cov --version 0.8.7 --locked
       - name: Create coverage output directory
@@ -52,7 +54,8 @@ jobs:
         run: python3 -m unittest scripts/test_check_lcov_thresholds.py
       - name: Enforce line coverage and write LCOV
         run: >-
-          cargo llvm-cov --workspace --exclude xtask --all-features --all-targets --locked
+          cargo +nightly-2026-08-01 llvm-cov --workspace --exclude xtask
+          --all-features --all-targets --locked
           --branch --lcov --output-path coverage/lcov.info --fail-under-lines 90
       - name: Enforce normative line and branch thresholds
         run: >-

@@ -53,7 +53,7 @@ cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo nextest run --workspace --all-targets --all-features --locked
 cargo test --doc --workspace --all-features --locked
 cargo deny --workspace --all-features --locked check advisories bans licenses sources
-cargo llvm-cov --workspace --exclude xtask --all-features --all-targets --locked --branch --fail-under-lines 90
+cargo +nightly-2026-08-01 llvm-cov --workspace --exclude xtask --all-features --all-targets --locked --branch --fail-under-lines 90
 python scripts/check_lcov_thresholds.py coverage/lcov.info quality/quality-plan.json
 cargo mutants --in-place --no-shuffle --minimum-test-timeout 20
 ```
@@ -89,9 +89,10 @@ herramienta de desarrollo. Los umbrales 90 % de líneas y 85 % de ramas se leen 
 Para generar el mismo informe que CI:
 
 ```text
-rustup component add llvm-tools-preview
+rustup toolchain install nightly-2026-08-01 --profile minimal
+rustup component add llvm-tools-preview --toolchain nightly-2026-08-01
 cargo install cargo-llvm-cov --version 0.8.7 --locked
-cargo llvm-cov --workspace --exclude xtask --all-features --all-targets --locked \
+cargo +nightly-2026-08-01 llvm-cov --workspace --exclude xtask --all-features --all-targets --locked \
   --branch --lcov --output-path coverage/lcov.info --fail-under-lines 90
 python scripts/check_lcov_thresholds.py coverage/lcov.info quality/quality-plan.json
 ```
