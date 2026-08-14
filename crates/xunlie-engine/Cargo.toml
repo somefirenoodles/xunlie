@@ -11,7 +11,7 @@ repository.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-xunlie-domain = { path = "../xunlie-domain" }
+xunlie-domain = { version = "0.1.0", path = "../xunlie-domain" }
 
 [dev-dependencies]
 proptest.workspace = true
