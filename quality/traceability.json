@@ -3,6 +3,7 @@
   "baselineVersion": "0.1.0",
   "tests": [
     {"id": "TEST-INGEST-UNIT", "kind": "unit", "plannedGate": "G3"},
+    {"id": "TEST-PARSER-FUZZ", "kind": "security", "plannedGate": "G3"},
     {"id": "TEST-CONTRACT-GOLDEN", "kind": "golden", "plannedGate": "G3"},
     {"id": "TEST-RESOLUTION-PROP", "kind": "property", "plannedGate": "G3"},
     {"id": "TEST-VARIANT-META", "kind": "metamorphic", "plannedGate": "G3"},
@@ -26,7 +27,7 @@
     {"id": "TEST-RELEASE-VERIFY", "kind": "supply-chain", "plannedGate": "G5"}
   ],
   "links": [
-    {"requirementId": "REQ-F-001", "components": ["COMP-ENGINE", "COMP-DOMAIN"], "architecture": ["INV-ARCH-004", "INV-ARCH-010"], "tests": ["TEST-INGEST-UNIT"], "gates": ["G1", "G3"]},
+    {"requirementId": "REQ-F-001", "components": ["COMP-ENGINE", "COMP-DOMAIN"], "architecture": ["INV-ARCH-004", "INV-ARCH-010"], "tests": ["TEST-INGEST-UNIT", "TEST-PARSER-FUZZ"], "gates": ["G1", "G3"]},
     {"requirementId": "REQ-F-002", "components": ["COMP-ENGINE", "COMP-DOMAIN"], "architecture": ["INV-ARCH-001", "INV-ARCH-003", "INV-ARCH-004", "INV-ARCH-010"], "tests": ["TEST-CONTRACT-GOLDEN"], "gates": ["G2", "G3"]},
     {"requirementId": "REQ-F-003", "components": ["COMP-DOMAIN", "COMP-ENGINE"], "architecture": ["INV-ARCH-001", "INV-ARCH-003"], "tests": ["TEST-RESOLUTION-PROP"], "gates": ["G2", "G3"]},
     {"requirementId": "REQ-F-004", "components": ["COMP-DOMAIN", "COMP-ENGINE"], "architecture": ["INV-ARCH-002", "INV-ARCH-003"], "tests": ["TEST-VARIANT-META"], "gates": ["G2", "G3"]},
@@ -41,7 +42,7 @@
     {"requirementId": "REQ-Q-001", "components": ["COMP-DOMAIN", "COMP-ENGINE", "COMP-EVIDENCE"], "architecture": ["INV-ARCH-003", "INV-ARCH-004"], "tests": ["TEST-CONTRACT-GOLDEN", "TEST-RESOLUTION-PROP", "TEST-VARIANT-META", "TEST-REPLAY-CROSS"], "gates": ["G2", "G3", "G4"]},
     {"requirementId": "REQ-Q-002", "components": ["COMP-EVIDENCE", "COMP-REPORT"], "architecture": ["INV-ARCH-004", "INV-ARCH-008", "INV-ARCH-012"], "tests": ["TEST-EVIDENCE-INTEGRITY", "TEST-AUDIT-RECONSTRUCT"], "gates": ["G0", "G3", "G5"]},
     {"requirementId": "REQ-Q-003", "components": ["COMP-EXECUTION", "COMP-PROTOCOL"], "architecture": ["INV-ARCH-005", "INV-ARCH-009", "INV-ARCH-011"], "tests": ["TEST-ISOLATION-ADV"], "gates": ["G2", "G4", "G5"]},
-    {"requirementId": "REQ-Q-004", "components": ["COMP-EXECUTION", "COMP-EVIDENCE", "COMP-REPORT"], "architecture": ["INV-ARCH-006", "INV-ARCH-007", "INV-ARCH-012"], "tests": ["TEST-CHAOS-FAILCLOSED"], "gates": ["G3", "G4"]},
+    {"requirementId": "REQ-Q-004", "components": ["COMP-EXECUTION", "COMP-EVIDENCE", "COMP-REPORT"], "architecture": ["INV-ARCH-006", "INV-ARCH-007", "INV-ARCH-012"], "tests": ["TEST-CHAOS-FAILCLOSED", "TEST-PARSER-FUZZ"], "gates": ["G3", "G4"]},
     {"requirementId": "REQ-Q-005", "components": ["COMP-EXECUTION", "COMP-REPORT"], "architecture": ["INV-ARCH-009"], "tests": ["TEST-BENCH-BUDGET", "TEST-BUDGET-CHAOS"], "gates": ["G4", "G6"]},
     {"requirementId": "REQ-Q-006", "components": ["COMP-CLI", "COMP-EVIDENCE", "COMP-PROTOCOL"], "architecture": ["INV-ARCH-004", "INV-ARCH-010"], "tests": ["TEST-PLATFORM-MATRIX", "TEST-REPLAY-CROSS"], "gates": ["G4", "G5"]},
     {"requirementId": "REQ-Q-007", "components": ["COMP-PROTOCOL", "COMP-EVIDENCE", "COMP-CLI"], "architecture": ["INV-ARCH-010"], "tests": ["TEST-SCHEMA-COMPAT", "TEST-PROTOCOL-CONFORMANCE"], "gates": ["G2", "G3", "G4"]},
@@ -52,4 +53,3 @@
     {"requirementId": "REQ-Q-012", "components": ["COMP-EVIDENCE", "COMP-CLI"], "architecture": ["INV-ARCH-004", "INV-ARCH-010", "INV-ARCH-012"], "tests": ["TEST-RELEASE-VERIFY"], "gates": ["G5", "G6"]}
   ]
 }
-

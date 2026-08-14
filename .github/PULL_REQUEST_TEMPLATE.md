@@ -1,34 +1,46 @@
-## Intención
+## Resumen
 
-- Issue:
-- Requirement refs (`REQ-*`):
-- Risk refs (`RISK-*`):
-- Acceptance outcome:
+<!-- Qué problema resuelve este cambio y cuál es el resultado observable. -->
+
+## Relación y alcance
+
+- Closes #
+- Requisitos (`REQ-*`):
+- Riesgos (`RISK-*`):
+- ADR o reglas de arquitectura:
+- Fuera de alcance:
 
 ## Impacto
 
-- Architecture impact: `none | compatible | adr-required`
-- ADR refs:
-- Security/privacy impact: `none | described below`
-- Compatibility/migration impact:
-- Dependencies/toolchain impact:
+- Arquitectura: `ninguno | compatible | requiere ADR`
+- Seguridad/privacidad: `ninguno | descrito abajo`
+- Compatibilidad/migración: `ninguna | descrita abajo`
+- Dependencias/toolchain: `sin cambios | descrito abajo`
+
+<!-- Explique aquí cualquier impacto indicado arriba. -->
 
 ## Verificación
 
-- Test/evidence refs (`TEST-*`, `EVID-*`):
-- Failure modes exercised:
-- Local quality command/result:
+<!-- Incluya comandos, resultados y casos de fallo relevantes. -->
+
+```console
+cargo xtask quality
+```
+
+- Evidencia o tests (`TEST-*`, `EVID-*`):
+- Plataformas verificadas:
 
 ## Procedencia
 
-- Material AI assistance: `none | used and independently validated`
-- External sources/licenses:
+- Asistencia material de IA: `ninguna | usada y validada`
+- Fuentes externas y licencias:
 
 ## Checklist
 
-- [ ] La trazabilidad bidireccional está actualizada.
-- [ ] Tests y documentación cambian junto con el comportamiento.
-- [ ] No he ocultado retry, flaky test, finding ni deuda.
-- [ ] Existe rollback/migración cuando aplica.
-- [ ] No apruebo mi propio cambio.
-
+- [ ] El cambio está enfocado y vinculado a un issue, o expliqué por qué no aplica.
+- [ ] Añadí o actualicé tests y documentación cuando cambió el comportamiento.
+- [ ] Actualicé trazabilidad, ADR, migración o rollback cuando corresponde.
+- [ ] Revisé seguridad, privacidad, compatibilidad y dependencias.
+- [ ] No incluí secretos, datos personales ni artefactos generados innecesarios.
+- [ ] Ejecuté los controles locales aplicables y reporté el resultado real.
+- [ ] Leí y cumplo `CONTRIBUTING.md` y `CODE_OF_CONDUCT.md`.

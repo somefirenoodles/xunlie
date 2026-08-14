@@ -273,6 +273,17 @@ def main() -> int:
 
     required_docs = [
         "README.md",
+        "CHANGELOG.md",
+        "CITATION.cff",
+        "CODE_OF_CONDUCT.md",
+        "CONTRIBUTING.md",
+        "GOVERNANCE.md",
+        "SECURITY.md",
+        "VERSIONING.md",
+        "docs/README.md",
+        "docs/development/LOCAL-DEVELOPMENT.md",
+        "docs/development/RELEASING.md",
+        "fuzz/README.md",
         "docs/quality/SOFTWARE-QUALITY-PLAN.md",
         "docs/quality/STAGE-GATES.md",
         "docs/quality/QUALITY-METRICS.md",

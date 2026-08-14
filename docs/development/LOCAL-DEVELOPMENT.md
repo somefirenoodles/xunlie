@@ -10,6 +10,9 @@ componentes; no se debe seleccionar `stable` de forma implícita en scripts o wo
 - `rustup` con el toolchain indicado por `rust-toolchain.toml`.
 - Python 3 para validar los contratos de gobernanza.
 - `cargo-deny 0.20.2` para la auditoría local de dependencias.
+- `cargo-nextest 0.9.143` para ejecutar la misma suite que CI.
+- `cargo-llvm-cov 0.8.7` y el componente `llvm-tools-preview` para medir cobertura.
+- `cargo-fuzz 0.13.2` y `nightly-2026-08-01` únicamente para campañas de fuzzing.
 
 Instalación inicial:
 
@@ -17,6 +20,7 @@ Instalación inicial:
 rustup show active-toolchain
 rustup component add rustfmt clippy
 cargo install cargo-deny --version 0.20.2 --locked
+cargo install cargo-nextest --version 0.9.143 --locked
 cargo fetch --locked
 ```
 
@@ -30,7 +34,7 @@ Durante la implementación:
 
 ```text
 cargo check --workspace --all-targets --all-features --locked
-cargo test --workspace --all-targets --all-features --locked
+cargo nextest run --workspace --all-targets --all-features --locked
 ```
 
 Para iterar sobre un crate se puede usar `cargo test -p <crate>`, pero antes de abrir un PR se
@@ -44,9 +48,10 @@ Los siguientes comandos corresponden a los jobs bloqueantes de `.github/workflow
 python scripts/validate_quality_system.py
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-cargo test --workspace --all-targets --all-features --locked
+cargo nextest run --workspace --all-targets --all-features --locked
 cargo test --doc --workspace --all-features --locked
 cargo deny --workspace --all-features --locked check advisories bans licenses sources
+cargo llvm-cov --workspace --all-features --all-targets --locked --fail-under-lines 75
 ```
 
 No se admite que un comando modifique `Cargo.lock` durante esta comprobación. Si una dependencia
@@ -62,11 +67,31 @@ cambia de forma intencional, se actualiza el lockfile por separado y se revisa s
 | `tests-windows-2025` | Windows 2025 | portabilidad y rutas/procesos Windows |
 | `cargo-deny` | Ubuntu 24.04 | advisories, licencias, versiones y fuentes |
 | `codeql-rust` | Ubuntu 24.04 | análisis estático de seguridad con consultas extendidas |
+| `msrv-1.85.0` | Ubuntu 24.04 | compatibilidad con la versión mínima de Rust declarada |
+| `coverage` | Ubuntu 24.04 | cobertura de líneas mínima del 75 % y artefacto LCOV |
+| `fuzz-source-parser` | Ubuntu 24.04 | campaña acotada de libFuzzer sobre el compilador de fuentes |
 
 Las Actions externas están fijadas a commits completos. Dependabot puede proponer su actualización,
 pero el comentario de versión y el SHA deben cambiar juntos. CodeQL usa `build-mode: none`, soportado
 para Rust, para evitar una segunda compilación del workspace; su resultado no sustituye Clippy,
 tests ni `cargo-deny`.
+
+## Cobertura y fuzzing
+
+La cobertura se calcula sobre todo el workspace y todos sus targets. El 75 % es un piso de
+regresión, no una meta: un PR no debe añadir ramas críticas sin pruebas aunque el total permanezca
+por encima del umbral. Para generar el mismo informe que CI:
+
+```text
+rustup component add llvm-tools-preview
+cargo install cargo-llvm-cov --version 0.8.7 --locked
+cargo llvm-cov --workspace --all-features --all-targets --locked \
+  --lcov --output-path coverage/lcov.info --fail-under-lines 75
+```
+
+El parser se somete a libFuzzer con un nightly fechado para que la entrada de CI sea reproducible.
+La estrategia, corpus y tratamiento de regresiones se documentan en `fuzz/README.md`. El fuzzing
+es un workspace aislado y no modifica el grafo de dependencias del binario publicado.
 
 ## Fallos frecuentes
 

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "xunlie.source/v1",
+  "operations": [
+    {
+      "op": "add",
+      "requirement": {
+        "id": "REQ-FUZZ-001",
+        "kind": "quality",
+        "priority": "should",
+        "statement": "Seed a complete requirement history."
+      }
+    },
+    {
+      "op": "replace",
+      "target": "REQ-FUZZ-001",
+      "requirement": {
+        "id": "REQ-FUZZ-001",
+        "kind": "quality",
+        "priority": "must",
+        "statement": "Exercise replacement while fuzzing."
+      }
+    },
+    {
+      "op": "revoke",
+      "target": "REQ-FUZZ-001"
+    }
+  ]
+}

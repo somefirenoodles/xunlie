@@ -1,20 +1,37 @@
-name: Architecture change
-description: Proponer una decisión o cambio de frontera
+name: Cambio de arquitectura
+description: Proponer una decisión estructural, protocolo o cambio de frontera
 title: "[Architecture]: "
 labels: ["type:architecture", "needs:adr"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Use este formulario para cambios estructurales. La decisión final debe quedar en un ADR.
+
   - type: textarea
     id: context
     attributes:
       label: Contexto y fuerzas
+      description: ¿Qué limitación, presión o decisión irreversible necesita atención?
     validations:
       required: true
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decisión propuesta
+      description: Describa fronteras, dependencias, datos e invariantes afectados.
+    validations:
+      required: true
+
   - type: textarea
     id: alternatives
     attributes:
       label: Alternativas y evidencia
+      description: Compare opciones, trade-offs y evidencia disponible.
     validations:
       required: true
+
   - type: textarea
     id: requirements
     attributes:
@@ -22,6 +39,15 @@ body:
       placeholder: REQ-*, INV-ARCH-*, RISK-*
     validations:
       required: true
+
+  - type: textarea
+    id: consequences
+    attributes:
+      label: Consecuencias
+      description: Incluya coste operativo, seguridad, observabilidad y deuda introducida.
+    validations:
+      required: true
+
   - type: textarea
     id: migration
     attributes:
@@ -29,3 +55,14 @@ body:
     validations:
       required: true
 
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Comprobaciones
+      options:
+        - label: Revisé los ADR y propuestas existentes para evitar una decisión duplicada.
+          required: true
+        - label: Esta propuesta no contiene secretos ni detalles de una vulnerabilidad explotable.
+          required: true
+        - label: Acepto cumplir el Código de conducta del proyecto.
+          required: true

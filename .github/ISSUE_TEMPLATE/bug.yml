@@ -1,0 +1,82 @@
+name: Reporte de defecto
+description: Informar un comportamiento incorrecto y reproducible
+title: "[Bug]: "
+labels: ["type:defect", "needs:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por el reporte. No publique vulnerabilidades aquí: use el canal privado de SECURITY.md.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión o commit
+      description: Indique el tag, versión de `xunlie --version` o SHA probado.
+      placeholder: v0.1.0 o 2253cb9
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Entorno
+      description: Sistema operativo, arquitectura, versión de Rust y shell relevantes.
+      placeholder: Windows 11 x86_64, rustc ..., PowerShell ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproducción mínima
+      description: Incluya pasos, comando y entrada mínima sin información sensible.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamiento esperado
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamiento observado
+      description: Incluya el código de salida y diagnóstico exacto cuando sea útil.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: regression
+    attributes:
+      label: ¿Es una regresión?
+      options:
+        - No lo sé
+        - Sí, funcionaba antes
+        - No, nunca funcionó
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto adicional
+      description: Añada logs sanitizados, frecuencia, impacto o una posible causa.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Comprobaciones
+      options:
+        - label: Busqué reportes equivalentes y no encontré un duplicado abierto.
+          required: true
+        - label: Reduje el caso y eliminé secretos, credenciales y datos personales.
+          required: true
+        - label: Este reporte no describe una vulnerabilidad explotable.
+          required: true
+        - label: Acepto cumplir el Código de conducta del proyecto.
+          required: true

@@ -2,7 +2,10 @@
 
 [![governance](https://github.com/somefirenoodles/xunlie/actions/workflows/governance.yml/badge.svg)](https://github.com/somefirenoodles/xunlie/actions/workflows/governance.yml)
 [![CI](https://github.com/somefirenoodles/xunlie/actions/workflows/ci.yml/badge.svg)](https://github.com/somefirenoodles/xunlie/actions/workflows/ci.yml)
+[![Deep quality](https://github.com/somefirenoodles/xunlie/actions/workflows/deep-quality.yml/badge.svg)](https://github.com/somefirenoodles/xunlie/actions/workflows/deep-quality.yml)
+[![Release](https://img.shields.io/github/v/release/somefirenoodles/xunlie)](https://github.com/somefirenoodles/xunlie/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Rust 1.85+](https://img.shields.io/badge/MSRV-1.85-orange.svg)](rust-toolchain.toml)
 
 Xunlie es un compilador de contratos para ingeniería de software agéntica. Convierte una
 historia ordenada de requisitos en un `ContractIR` canónico, versionado y verificable. Si una
@@ -13,6 +16,10 @@ Este es el primer incremento ejecutable. Incluye la ingesta JSON `xunlie.source/
 determinista de operaciones `add`, `replace` y `revoke`, validación del contrato, dos digests
 SHA-256 y una CLI apta para uso humano o automatización. `contentDigest` identifica el significado
 del contrato; `artifactDigest` protege también su procedencia y metadatos.
+
+> **Estado:** versión temprana anterior a `1.0`. El formato `xunlie.contract/v1` es ejecutable y está
+> probado, pero todavía puede evolucionar antes de `1.0.0`. Consulte el
+> [changelog](CHANGELOG.md) antes de actualizar.
 
 ## Probarlo
 
@@ -27,6 +34,18 @@ cargo run -p xunlie-cli -- validate contract.json --format json
 El primer comando escribe JSON canónico `xunlie.contract/v1`. El segundo valida tanto el esquema
 como sus invariantes y comprueba ambos digests. Los resultados correctos van a `stdout`, los
 errores a `stderr`, y los códigos de salida son estables.
+
+Para instalar la CLI desde un checkout local:
+
+```console
+cargo install --path crates/xunlie-cli --locked
+xunlie --help
+```
+
+También hay binarios para Linux x86_64 y Windows x86_64 en
+[GitHub Releases](https://github.com/somefirenoodles/xunlie/releases/latest). Cada release incluye
+`SHA256SUMS` y provenance verificable; consulta la
+[guía de releases](docs/development/RELEASING.md) antes de confiar en un artefacto descargado.
 
 Ejemplo mínimo de entrada:
 
@@ -75,6 +94,15 @@ Para instalar herramientas o resolver problemas del entorno, consulta la
 [guía de desarrollo local](docs/development/LOCAL-DEVELOPMENT.md). La interfaz y los códigos de
 salida están documentados en [`xunlie-cli`](crates/xunlie-cli/README.md).
 
+## Participar
+
+- Lea [CONTRIBUTING.md](CONTRIBUTING.md) antes de proponer un cambio.
+- Use [Issues](https://github.com/somefirenoodles/xunlie/issues) para trabajo reproducible y
+  [Discussions](https://github.com/somefirenoodles/xunlie/discussions) para preguntas o ideas.
+- Reporte vulnerabilidades mediante el canal privado de [SECURITY.md](SECURITY.md).
+- Toda interacción está sujeta al [Código de conducta](CODE_OF_CONDUCT.md).
+- Los cambios relevantes y notas de compatibilidad viven en [CHANGELOG.md](CHANGELOG.md).
+
 ## Mapa del repositorio
 
 | Ruta | Propósito |
@@ -88,4 +116,5 @@ salida están documentados en [`xunlie-cli`](crates/xunlie-cli/README.md).
 | `scripts/` | Validadores auxiliares sin dependencias externas |
 | `.github/` | Gobernanza y automatización del repositorio |
 
-Xunlie es software público bajo licencia [MIT](LICENSE).
+Xunlie es software público bajo licencia [MIT](LICENSE). Su gobierno y política de compatibilidad
+se describen en [GOVERNANCE.md](GOVERNANCE.md) y [VERSIONING.md](VERSIONING.md).
