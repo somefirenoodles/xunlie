@@ -1,0 +1,82 @@
+name: deep-quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deep-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  msrv:
+    name: msrv-1.85.0
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install declared minimum Rust version
+        run: rustup toolchain install 1.85.0 --profile minimal
+      - name: Check all targets on MSRV
+        run: >-
+          cargo +1.85.0 check --workspace --all-targets --all-features --locked
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install LLVM coverage tools
+        run: rustup component add llvm-tools-preview
+      - name: Install pinned coverage runner
+        run: cargo install cargo-llvm-cov --version 0.8.7 --locked
+      - name: Enforce line coverage and write LCOV
+        run: >-
+          cargo llvm-cov --workspace --all-features --all-targets --locked
+          --lcov --output-path coverage/lcov.info --fail-under-lines 75
+      - name: Upload LCOV report
+        if: always() && hashFiles('coverage/lcov.info') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: xunlie-lcov
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 14
+
+  fuzz-smoke:
+    name: fuzz-source-parser
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pinned nightly
+        run: rustup toolchain install nightly-2026-08-01 --profile minimal
+      - name: Install pinned fuzz runner
+        run: cargo +nightly-2026-08-01 install cargo-fuzz --version 0.13.2 --locked
+      - name: Verify locked fuzz dependency graph
+        run: >-
+          cargo +nightly-2026-08-01 metadata
+          --manifest-path fuzz/Cargo.toml --locked --format-version 1 --no-deps
+      - name: Fuzz source parser
+        run: >-
+          cargo +nightly-2026-08-01 fuzz run source_parser
+          -- -max_total_time=30 -rss_limit_mb=2048

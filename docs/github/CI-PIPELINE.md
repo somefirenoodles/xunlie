@@ -1,54 +1,71 @@
-# Diseño del pipeline de calidad
+# Pipeline de integración y release
 
-## Lane rápida de PR
+Xunlie divide sus controles en workflows pequeños, con permisos mínimos y nombres de job
+estables para que el ruleset de `main` pueda exigirlos.
 
-Objetivo operativo: feedback principal en menos de 10 minutos sin omitir controles críticos.
+## `governance.yml`
 
-| Job | Comando previsto | Bloquea |
-|---|---|---|
-| governance | `python scripts/validate_quality_system.py` | siempre |
-| fmt | `cargo fmt --all -- --check` | G3 |
-| clippy | `cargo clippy --workspace --all-targets --all-features -- -D warnings` | G3 |
-| tests | `cargo nextest run --workspace --all-features` + doctests | G3 |
-| architecture | `cargo xtask architecture` | G3 |
-| requirements | `cargo xtask traceability` | G3 |
-| coverage | `cargo llvm-cov nextest --workspace --all-features` | G3 |
-| dependencies | `cargo deny check` + dependency review | G3 |
-| security | CodeQL, secrets, `zizmor`/`actionlint` | G3 |
+Ejecuta `scripts/validate_quality_system.py` en cada PR y push a `main`. Comprueba requisitos,
+trazabilidad, riesgos, herramientas, gates y la existencia de la documentación normativa y
+comunitaria.
 
-Los jobs fallan cerrado ante output ausente. El reporte de un job conserva versión/digest de herramienta y se sube con retención definida.
+Job obligatorio: `validate-quality-system`.
 
-## Lane profunda
+## `ci.yml`
 
-Nightly y por PR crítica:
+Es la lane funcional y de seguridad cotidiana:
 
-- propiedades con mayor número de casos;
-- mutation testing de módulos afectados;
-- fuzzing con corpus persistente;
-- replay del corpus dorado;
-- matriz Linux/macOS/Windows;
-- caos de procesos, disco, timeout y red;
-- benchmark contra baseline y presupuesto;
-- OpenSSF Scorecard y auditoría de workflows.
+| Job | Evidencia |
+|---|---|
+| `governance` | segunda comprobación del contrato de calidad dentro de la CI principal |
+| `rustfmt-and-clippy` | formato, Clippy con warnings como errores y doctests |
+| `tests-ubuntu-24.04` | suite completa mediante cargo-nextest en Linux |
+| `tests-windows-2025` | la misma suite mediante cargo-nextest en Windows |
+| `cargo-deny` | advisories, licencias, fuentes y dependencias prohibidas |
+| `codeql-rust` | consultas CodeQL `security-extended` para Rust |
 
-Una falla nightly abre issue automáticamente, asigna dueño y bloquea G4/G5. No necesariamente revierte una PR ya integrada salvo regresión crítica; `main` continúa visible como degradada hasta reparar.
+El toolchain de producto proviene de `rust-toolchain.toml`; nextest y las Actions externas están
+fijados a versiones y commits completos.
 
-## Lane de release
+## `deep-quality.yml`
 
-1. Checkout de tag protegido en runner efímero.
-2. Repetición de G4 sobre el commit exacto.
-3. Build por matriz y generación de checksums/SBOM.
-4. Artifact attestation/provenance.
-5. Job separado descarga y verifica digest, firma, SBOM e instalación.
-6. Aprobación del environment `release`.
-7. Publicación/promoción del mismo digest.
-8. Registro G5 y smoke test posterior.
+Ejecuta en cada PR, push a `main` y bajo demanda:
 
-## Pin y permisos
+| Job | Evidencia |
+|---|---|
+| `msrv-1.85.0` | el workspace compila con la versión mínima declarada |
+| `coverage` | cobertura de líneas mínima del 75 % y reporte LCOV descargable |
+| `fuzz-source-parser` | campaña libFuzzer acotada contra el límite público del compilador |
 
-Acciones de terceros se fijan a SHA completo y el comentario conserva versión legible. Dependabot propone actualizaciones; estas pasan shadow/review cuando cambian la semántica del control. Cada job declara permisos mínimos y publicación usa OIDC.
+El fuzzing usa `nightly-2026-08-01`, `cargo-fuzz 0.13.2`, lockfile independiente y corpus
+versionado. El umbral de cobertura es un piso de regresión, no una sustitución de pruebas
+dirigidas.
 
-## Escalado
+## `release.yml`
 
-Al crecer el repositorio se usa change detection solo para añadir controles especializados, nunca para saltar governance, trazabilidad o secret scanning. Tests pesados pueden distribuirse por shards reproducibles; el GateRecord no se completa hasta reunir todos los shards.
+Solo se activa al publicar un tag SemVer `v*`. Antes de crear un release:
 
+1. verifica que el tag coincida con `Cargo.toml` y pertenezca a `main`;
+2. construye y prueba los binarios Linux x86_64 y Windows x86_64;
+3. empaqueta binario, licencia y README;
+4. genera y verifica `SHA256SUMS`;
+5. emite attestations de build provenance;
+6. publica los mismos bytes en GitHub Releases.
+
+El job de publicación es el único con `contents: write`, `id-token: write` y
+`attestations: write`. El procedimiento de operación y recuperación está en
+[`RELEASING.md`](../development/RELEASING.md).
+
+## Pinning y permisos
+
+- Todo `uses:` referencia un commit SHA completo con su versión legible en comentario.
+- El repositorio exige SHA pinning para Actions.
+- `GITHUB_TOKEN` recibe `contents: read` por defecto; cada job eleva solo lo necesario.
+- Checkout nunca persiste credenciales.
+- Las dependencias Rust y del workspace de fuzzing usan lockfiles versionados.
+
+## Controles posteriores
+
+Mutation testing prolongado, replay, caos, benchmarks y comparación de builds independientes
+pertenecen a milestones posteriores. No se presentan como controles activos hasta que exista un
+workflow reproducible y su check haya pasado en `main`.

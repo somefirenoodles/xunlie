@@ -1,39 +1,84 @@
-name: Feature / requirement
-description: Proponer una capacidad verificable
+name: Funcionalidad o requisito
+description: Proponer una capacidad verificable para Xunlie
 title: "[Feature]: "
 labels: ["type:feature", "needs:triage"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por la propuesta. Para preguntas o ideas todavía abiertas, use Discussions.
+
   - type: textarea
     id: need
     attributes:
       label: Necesidad y usuario
-      description: Qué resultado necesita quién y por qué ahora.
+      description: ¿Quién necesita qué resultado y qué problema ocurre hoy?
+      placeholder: Como <usuario>, necesito <resultado> para <beneficio>.
     validations:
       required: true
-  - type: input
-    id: requirement
+
+  - type: textarea
+    id: outcome
     attributes:
-      label: Requirement ID
-      placeholder: REQ-F-xxx o new
+      label: Resultado propuesto
+      description: Describa el comportamiento deseado, no solo una implementación.
     validations:
       required: true
+
   - type: textarea
     id: acceptance
     attributes:
       label: Criterios de aceptación observables
+      description: Incluya casos correctos, límites y fallos esperados.
+      placeholder: |
+        - Dado ..., cuando ..., entonces ...
+        - Una entrada inválida ...
     validations:
       required: true
+
+  - type: input
+    id: requirement
+    attributes:
+      label: Requirement ID
+      description: Use un ID existente o escriba `new`.
+      placeholder: REQ-F-xxx o new
+    validations:
+      required: true
+
   - type: dropdown
     id: risk
     attributes:
       label: Riesgo máximo estimado
-      options: [critical, high, medium, low]
-    validations:
-      required: true
-  - type: textarea
-    id: impact
-    attributes:
-      label: Arquitectura, seguridad, compatibilidad y rollback
+      options:
+        - critical
+        - high
+        - medium
+        - low
     validations:
       required: true
 
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas y fuera de alcance
+      description: ¿Qué otras opciones consideró y qué no debe resolver este cambio?
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Arquitectura, seguridad y compatibilidad
+      description: Indique impacto, migración y rollback, o explique por qué no aplican.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Comprobaciones
+      options:
+        - label: Busqué propuestas equivalentes y no encontré un duplicado abierto.
+          required: true
+        - label: Esta propuesta no contiene secretos ni detalles de una vulnerabilidad explotable.
+          required: true
+        - label: Acepto cumplir el Código de conducta del proyecto.
+          required: true

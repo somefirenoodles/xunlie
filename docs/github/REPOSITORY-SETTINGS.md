@@ -1,82 +1,78 @@
 # Configuración del repositorio GitHub
 
-Este documento separa la configuración remota activa de la configuración objetivo para aprobación independiente. La evidencia exportada está en `quality/evidence/github-bootstrap.json`.
+Este documento distingue la configuración remota activa de las mejoras que requieren más de una
+identidad operativa. La evidencia histórica del bootstrap se conserva en
+`quality/evidence/github-bootstrap.json`.
 
-## Baseline
+## Baseline activo
 
-- Repositorio: [somefirenoodles/xunlie](https://github.com/somefirenoodles/xunlie), público y MIT.
-- Rama por defecto: `main`.
-- Merge: squash habilitado; merge commits y rebase merge deshabilitados.
-- Auto-delete de branches integrado.
-- Issues, security advisories y vulnerability alerts habilitados.
-- Actions permitidas por allowlist; `GITHUB_TOKEN` con `contents: read` por defecto.
-- Labels iniciales: `type:feature`, `type:defect`, `type:architecture`, `type:security`, `type:process`, `needs:triage`, `needs:adr`, `risk:critical` y `risk:high`.
+- Repositorio público: [somefirenoodles/xunlie](https://github.com/somefirenoodles/xunlie), bajo
+  licencia MIT y con `main` como rama predeterminada.
+- Solo se permite squash merge; merge commits y rebase merge están deshabilitados.
+- Las ramas integradas se eliminan automáticamente.
+- Issues, Discussions y private vulnerability reporting están habilitados.
+- Dependabot security updates, secret scanning y push protection están habilitados.
+- Actions está habilitado con `GITHUB_TOKEN` de solo lectura por defecto y exige que todo `uses:`
+  esté fijado a un commit SHA completo.
+- Las Actions pueden provenir de cualquier publicador, pero el pin SHA obligatorio evita
+  referencias mutables. Cada alta de una Action sigue requiriendo revisión en código.
 
 ## Ruleset activo `main-protection`
 
-Ruleset ID `20826197`, enforcement `active`, creado el 2026-08-13:
+El ruleset de rama con ID `20826197` está en enforcement `active`, sin bypass:
 
-- bloquear borrado y force-push;
-- requerir pull request;
-- cero bypass, incluso para el owner;
-- cero approvals mientras solo exista una identidad operativa;
-- descartar approvals obsoletos cuando existan;
-- resolver conversaciones antes de merge;
-- historia lineal y solo squash merge;
-- branch estrictamente actualizada antes de integrar;
-- check obligatorio `validate-quality-system`.
+- impide borrar `main` o hacer force-push;
+- requiere pull request, historia lineal y squash merge;
+- descarta aprobaciones obsoletas tras nuevos commits;
+- exige resolver todas las conversaciones;
+- exige que la rama esté actualizada con `main` antes de integrar;
+- actualmente requiere el check `validate-quality-system`.
 
-Esta protección es operativa, no independiente. DEC-011 bloquea G0/G5 hasta añadir un segundo maintainer/auditor y elevar el ruleset.
+La lista de checks se amplía después de que los nombres nuevos hayan aparecido y pasado en una PR.
+Los checks objetivo de este incremento son:
 
-## Elevación requerida para G0 independiente
+- `rustfmt-and-clippy`;
+- `tests-ubuntu-24.04`;
+- `tests-windows-2025`;
+- `cargo-deny`;
+- `codeql-rust`;
+- `msrv-1.85.0`;
+- `coverage`;
+- `fuzz-source-parser`.
 
-- 1 aprobación general; 2 para dominio, protocolo, seguridad, workflows, arquitectura y release;
-- requerir CODEOWNER y aprobación del último push por persona distinta;
-- commits/tags firmados y merge queue cuando haya capacidad suficiente;
+No se configura como obligatorio un nombre inexistente: primero se ejecuta el workflow, después se
+verifica la evidencia y finalmente se actualiza el ruleset.
+
+## Tags de release
+
+Los tags `v*` se protegen contra borrado y actualización no fast-forward mediante un ruleset sin
+bypass. La creación permanece permitida para que el mantenedor pueda publicar releases. El
+workflow valida además SemVer, coincidencia con la versión del workspace y pertenencia del commit a
+`main` antes de construir o publicar.
+
+Los binarios se publican con checksums SHA-256 y build provenance. No se declara firma nativa de
+binarios ni reproducibilidad bit a bit hasta disponer de un segundo constructor independiente.
+
+## Límite de independencia
+
+El repositorio tiene una sola identidad operativa. Por ello el ruleset exige cero aprobaciones: una
+autoaprobación no aportaría independencia real. `DEC-011` mantiene bloqueada la afirmación de un
+gate independiente hasta incorporar un segundo maintainer o auditor.
+
+Cuando exista esa capacidad, la elevación prevista es:
+
+- una aprobación general y dos para dominio, seguridad, workflows, arquitectura y release;
+- CODEOWNERS y aprobación del último push por una persona distinta;
 - equipo break-glass separado, restringido y auditado;
-- probar rechazo de autoaprobación y bypass.
+- prueba periódica del rechazo de autoaprobación y bypass.
 
-Check activo de bootstrap:
+## Evidencia operativa
 
-- `validate-quality-system`
+La API de GitHub confirma el ruleset activo, ausencia de bypass, permisos de workflow de solo
+lectura, SHA pinning, secret scanning, push protection, Dependabot security updates y squash-only.
+Cada cambio de controles se valida mediante una PR real; la guía de release exige además verificar
+assets, checksums y attestations una vez publicada la versión.
 
-Checks que se hacen obligatorios al comenzar G3, después de existir y pasar en `main`:
-
-- `ci / fmt`
-- `ci / clippy`
-- `ci / test-linux`
-- `ci / test-windows`
-- `quality / requirements`
-- `quality / architecture`
-- `quality / coverage`
-- `security / codeql`
-- `security / dependency-review`
-- `security / cargo-deny`
-- `security / workflow-security`
-
-No se configura como required un nombre de check inexistente: se introduce workflow, se prueba, se registra evidencia y luego se activa el ruleset en la misma ventana de cambio controlada.
-
-## Ruleset de tags `v*`
-
-- restringir creación y actualización a Release Managers;
-- impedir borrado y actualización no fast-forward;
-- requerir tag firmado;
-- nombre SemVer `vMAJOR.MINOR.PATCH` o prerelease permitido.
-
-## Environments
-
-`release` requiere dos revisores, impide auto-review, limita branches/tags protegidos y usa OIDC/credenciales efímeras. Publicación y verificación son jobs separados. El artefacto se promueve por digest.
-
-## Seguridad
-
-- Dependabot alerts/updates y dependency review;
-- secret scanning y push protection;
-- CodeQL default/advanced setup para Rust y GitHub Actions cuando exista código;
-- artifact attestations para binarios y SBOM;
-- private vulnerability reporting si el repositorio es público.
-
-## Evidencia de activación
-
-La API confirma ruleset activo, ningún bypass, check obligatorio, secret scanning/push protection, Dependabot security updates, squash-only y rama `main`. Falta comprobar mediante intento controlado el rechazo de push directo y registrar el ciclo completo de una PR; esta PR realiza esa prueba.
-
-Referencias oficiales: [reglas disponibles en rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets), [artifact attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations) y [dependency review](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/configure-dependency-review-action).
+Referencias oficiales: [reglas disponibles en rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets),
+[artifact attestations](https://docs.github.com/en/actions/concepts/security/artifact-attestations) y
+[dependency review](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/manage-your-dependency-security/configure-dependency-review-action).

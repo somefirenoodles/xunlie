@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use Xunlie in research or practice, please cite this software."
+title: Xunlie
+type: software
+authors:
+  - family-names: Gonzalez
+    given-names: Gabriel
+    alias: somefirenoodles
+    website: "https://github.com/somefirenoodles"
+repository-code: "https://github.com/somefirenoodles/xunlie"
+url: "https://github.com/somefirenoodles/xunlie"
+license: MIT
+version: 0.1.0
+date-released: 2026-08-13
+keywords:
+  - agentic engineering
+  - software quality
+  - requirements engineering
+  - reproducibility
+  - Rust

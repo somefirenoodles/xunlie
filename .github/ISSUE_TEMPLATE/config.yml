@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vulnerabilidad de seguridad
+    url: https://github.com/somefirenoodles/xunlie/security/advisories/new
+    about: Reporte una vulnerabilidad de forma privada; no publique detalles explotables.
+  - name: Pregunta o idea abierta
+    url: https://github.com/somefirenoodles/xunlie/discussions
+    about: Obtenga ayuda de uso o explore una idea antes de convertirla en requisito.

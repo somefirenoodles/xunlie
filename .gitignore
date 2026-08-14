@@ -2,6 +2,8 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 /target*/
+/fuzz/target/
+/fuzz/artifacts/
 .xunlie/
 coverage/
 *.profraw

@@ -1,0 +1,215 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  verify:
+    name: verify-release-tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate tag, workspace version, and ancestry
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Release tag is not valid SemVer: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          release_version="${RELEASE_TAG#v}"
+          workspace_version="$(python3 - <<'PY'
+          import pathlib
+          import tomllib
+
+          manifest = tomllib.loads(pathlib.Path("Cargo.toml").read_text(encoding="utf-8"))
+          print(manifest["workspace"]["package"]["version"])
+          PY
+          )"
+
+          if [[ "$release_version" != "$workspace_version" ]]; then
+            echo "Tag version $release_version does not match workspace version $workspace_version" >&2
+            exit 1
+          fi
+
+          git fetch --no-tags origin main
+          tag_commit="$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          if ! git merge-base --is-ancestor "$tag_commit" origin/main; then
+            echo "Release commit $tag_commit is not reachable from origin/main" >&2
+            exit 1
+          fi
+
+          printf 'tag=%s\n' "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          printf 'version=%s\n' "$release_version" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: build-${{ matrix.target }}
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            extension: tar.gz
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            extension: zip
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+      RELEASE_TARGET: ${{ matrix.target }}
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
+      - name: Build locked release binary
+        run: cargo build --release --locked -p xunlie-cli --target ${{ matrix.target }}
+      - name: Smoke test Linux binary
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary="target/${RELEASE_TARGET}/release/xunlie"
+          smoke_dir="$(mktemp -d)"
+          "$binary" --help >/dev/null
+          "$binary" compile examples/minimal-source.json --out "$smoke_dir/contract.json" --format json >/dev/null
+          "$binary" validate "$smoke_dir/contract.json" --format json >/dev/null
+      - name: Smoke test Windows binary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $binary = Join-Path $PWD "target/$env:RELEASE_TARGET/release/xunlie.exe"
+          $smokeDir = Join-Path $env:RUNNER_TEMP "xunlie-release-smoke"
+          New-Item -ItemType Directory -Force -Path $smokeDir | Out-Null
+
+          & $binary --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "xunlie --help failed" }
+
+          & $binary compile examples/minimal-source.json --out "$smokeDir/contract.json" --format json | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "xunlie compile smoke test failed" }
+
+          & $binary validate "$smokeDir/contract.json" --format json | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "xunlie validate smoke test failed" }
+      - name: Package Linux archive
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="xunlie-${RELEASE_TAG}-${RELEASE_TARGET}"
+          mkdir -p "dist/$release_dir"
+          install -m 0755 "target/${RELEASE_TARGET}/release/xunlie" "dist/$release_dir/xunlie"
+          install -m 0644 LICENSE README.md "dist/$release_dir/"
+          tar -C dist -czf "dist/${release_dir}.tar.gz" "$release_dir"
+          rm -rf "dist/$release_dir"
+      - name: Package Windows archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $releaseDirName = "xunlie-$env:RELEASE_TAG-$env:RELEASE_TARGET"
+          $releaseDir = Join-Path $PWD "dist/$releaseDirName"
+          $archive = Join-Path $PWD "dist/$releaseDirName.zip"
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+          Copy-Item "target/$env:RELEASE_TARGET/release/xunlie.exe" $releaseDir
+          Copy-Item LICENSE, README.md $releaseDir
+          Compress-Archive -Path $releaseDir -DestinationPath $archive -CompressionLevel Optimal
+          Remove-Item -Recurse -Force -LiteralPath $releaseDir
+      - name: Upload release archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/xunlie-${{ needs.verify.outputs.tag }}-${{ matrix.target }}.${{ matrix.extension }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  publish:
+    name: publish-github-release
+    needs: [verify, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+      RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - name: Download release archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Generate and verify SHA-256 checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+
+          expected=(
+            "xunlie-${RELEASE_TAG}-x86_64-unknown-linux-gnu.tar.gz"
+            "xunlie-${RELEASE_TAG}-x86_64-pc-windows-msvc.zip"
+          )
+          for asset in "${expected[@]}"; do
+            test -f "$asset" || { echo "Missing release asset: $asset" >&2; exit 1; }
+          done
+
+          sha256sum "${expected[@]}" > SHA256SUMS
+          sha256sum --check SHA256SUMS
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Publish GitHub release
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_flags=()
+          if [[ "$RELEASE_VERSION" == *-* ]]; then
+            release_flags+=(--prerelease)
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            dist/*.tar.gz \
+            dist/*.zip \
+            dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --generate-notes \
+            --title "Xunlie $RELEASE_TAG" \
+            "${release_flags[@]}"

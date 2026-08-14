@@ -1,0 +1,30 @@
+[package]
+name = "xunlie-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+rust-version = "1.85"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "=0.4.13"
+serde_json = "=1.0.142"
+xunlie-engine = { version = "0.1.0", path = "../crates/xunlie-engine" }
+
+[[bin]]
+name = "source_parser"
+path = "fuzz_targets/source_parser.rs"
+test = false
+doc = false
+bench = false
+
+# Keep fuzzing isolated from the release workspace. libFuzzer requires nightly,
+# while the product workspace deliberately builds with the pinned stable toolchain.
+[workspace]
+members = ["."]
+resolver = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
