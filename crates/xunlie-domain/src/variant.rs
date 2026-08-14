@@ -604,4 +604,52 @@ mod tests {
         assert_eq!(certificate.preconditions().len(), 1);
         assert_eq!(certificate.preconditions()[0].id, "source.valid-json");
     }
+
+    #[test]
+    fn certificate_rejects_missing_duplicate_and_unchanged_evidence() {
+        let original = certificate();
+
+        let mut missing = original.clone();
+        missing.preconditions.clear();
+        assert!(
+            missing
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-CERTIFICATE-NO-PRECONDITIONS")
+        );
+
+        let mut duplicate = original.clone();
+        duplicate
+            .preconditions
+            .push(duplicate.preconditions[0].clone());
+        assert!(
+            duplicate
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-CERTIFICATE-DUPLICATE-PRECONDITION")
+        );
+
+        let mut unchanged_history = original.clone();
+        unchanged_history.after.history_digest = unchanged_history.before.history_digest.clone();
+        assert!(
+            unchanged_history
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-CERTIFICATE-UNCHANGED-HISTORY")
+        );
+
+        let mut unchanged_artifact = original;
+        unchanged_artifact.after.artifact_digest =
+            unchanged_artifact.before.artifact_digest.clone();
+        assert!(
+            unchanged_artifact
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-CERTIFICATE-UNCHANGED-ARTIFACT")
+        );
+    }
 }
