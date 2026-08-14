@@ -831,6 +831,11 @@ mod tests {
                     "fixture excluded",
                 )));
             }
+            if source == "invalid" {
+                return Err(VariantEngineFailure::Invalid(EngineFailure::message(
+                    "fixture failed closed",
+                )));
+            }
             Ok(GeneratedVariant {
                 canonical_json: "{\"schemaVersion\":\"xunlie.certified-variant/v1\"}\n".into(),
                 operator: operator.to_owned(),
@@ -962,5 +967,276 @@ mod tests {
             portable_identity(Path::new(r"examples\minimal-source.json")),
             "examples/minimal-source.json"
         );
+    }
+
+    #[derive(Debug, Default)]
+    struct FailingWriter;
+
+    impl Write for FailingWriter {
+        fn write(&mut self, _buffer: &[u8]) -> io::Result<usize> {
+            Err(io::Error::other("fixture writer failed"))
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn success_output(command: &'static str) -> SuccessOutput {
+        SuccessOutput {
+            schema_version: "xunlie.cli.result/v1",
+            command,
+            status: "ok",
+            input: PathBuf::from("source.json"),
+            output: Some(PathBuf::from("output.json")),
+            variant: Some(PathBuf::from("variant.json")),
+            operator: Some("json.presentation.normalize".to_owned()),
+            content_digest: "sha256:fixture".to_owned(),
+            artifact_digest: "sha256:artifact-fixture".to_owned(),
+            baseline_artifact_digest: Some("sha256:baseline".to_owned()),
+            certificate_digest: Some("sha256:certificate".to_owned()),
+        }
+    }
+
+    #[test]
+    fn inline_json_format_is_detected() {
+        assert_eq!(
+            requested_output_format(&[OsString::from("xunlie"), OsString::from("--format=JSON"),]),
+            OutputFormat::Json
+        );
+        assert_eq!(
+            requested_output_format(&[
+                OsString::from("xunlie"),
+                OsString::from("--format"),
+                OsString::from("human"),
+            ]),
+            OutputFormat::Human
+        );
+    }
+
+    #[test]
+    fn variant_success_exclusion_and_invalid_generation_are_distinct() {
+        for (source, expected) in [
+            ("excluded", ExitStatus::VariantExcluded),
+            ("invalid", ExitStatus::VariantInvalid),
+        ] {
+            let directory = tempfile::tempdir().unwrap();
+            let input = directory.path().join("source.json");
+            let output = directory.path().join("variant.json");
+            fs::write(&input, source).unwrap();
+            let mut stdout = Vec::new();
+            let mut stderr = Vec::new();
+            let status = run_with_engine(
+                vec![
+                    OsString::from("xunlie"),
+                    OsString::from("variant"),
+                    input.into_os_string(),
+                    OsString::from("--operator"),
+                    OsString::from("normalize-json"),
+                    OsString::from("--out"),
+                    output.clone().into_os_string(),
+                ],
+                &mut stdout,
+                &mut stderr,
+                &StubEngine,
+            );
+
+            assert_eq!(status, expected);
+            assert!(stdout.is_empty());
+            assert!(!stderr.is_empty());
+            assert!(!output.exists());
+        }
+
+        let directory = tempfile::tempdir().unwrap();
+        let input = directory.path().join("source.json");
+        let output = directory.path().join("variant.json");
+        fs::write(&input, "good").unwrap();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let status = run_with_engine(
+            vec![
+                OsString::from("xunlie"),
+                OsString::from("variant"),
+                input.into_os_string(),
+                OsString::from("--operator"),
+                OsString::from("normalize-json"),
+                OsString::from("--out"),
+                output.clone().into_os_string(),
+            ],
+            &mut stdout,
+            &mut stderr,
+            &StubEngine,
+        );
+
+        assert_eq!(status, ExitStatus::Success);
+        assert!(stderr.is_empty());
+        assert!(String::from_utf8(stdout).unwrap().contains("certified"));
+        assert!(output.exists());
+    }
+
+    #[test]
+    fn variant_output_failure_is_reported_without_success_output() {
+        let directory = tempfile::tempdir().unwrap();
+        let input = directory.path().join("source.json");
+        fs::write(&input, "good").unwrap();
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let status = run_with_engine(
+            vec![
+                OsString::from("xunlie"),
+                OsString::from("variant"),
+                input.into_os_string(),
+                OsString::from("--operator"),
+                OsString::from("normalize-json"),
+                OsString::from("--out"),
+                directory.path().as_os_str().to_owned(),
+            ],
+            &mut stdout,
+            &mut stderr,
+            &StubEngine,
+        );
+
+        assert_eq!(status, ExitStatus::OutputIo);
+        assert!(stdout.is_empty());
+        assert!(String::from_utf8(stderr).unwrap().contains("XUNLIE-E013"));
+    }
+
+    #[test]
+    fn verify_variant_covers_success_missing_input_and_invalid_artifact() {
+        let directory = tempfile::tempdir().unwrap();
+        let input = directory.path().join("source.json");
+        let variant = directory.path().join("variant.json");
+        fs::write(&input, "good").unwrap();
+        fs::write(&variant, "good").unwrap();
+
+        let invoke = |variant_path: PathBuf| {
+            let mut stdout = Vec::new();
+            let mut stderr = Vec::new();
+            let status = run_with_engine(
+                vec![
+                    OsString::from("xunlie"),
+                    OsString::from("verify-variant"),
+                    input.clone().into_os_string(),
+                    variant_path.into_os_string(),
+                ],
+                &mut stdout,
+                &mut stderr,
+                &StubEngine,
+            );
+            (status, stdout, stderr)
+        };
+
+        let (status, stdout, stderr) = invoke(variant.clone());
+        assert_eq!(status, ExitStatus::Success);
+        assert!(stderr.is_empty());
+        assert!(String::from_utf8(stdout).unwrap().contains("verified"));
+
+        let (status, stdout, stderr) = invoke(directory.path().join("missing.json"));
+        assert_eq!(status, ExitStatus::InputIo);
+        assert!(stdout.is_empty());
+        assert!(String::from_utf8(stderr).unwrap().contains("XUNLIE-E010"));
+
+        fs::write(&variant, "bad").unwrap();
+        let (status, stdout, stderr) = invoke(variant);
+        assert_eq!(status, ExitStatus::VariantInvalid);
+        assert!(stdout.is_empty());
+        assert!(String::from_utf8(stderr).unwrap().contains("XUNLIE-E015"));
+    }
+
+    #[test]
+    fn writer_failures_return_internal_status() {
+        let mut failing_stdout = FailingWriter;
+        let mut stderr = Vec::new();
+        assert_eq!(
+            run_with_engine(
+                ["xunlie", "--help"],
+                &mut failing_stdout,
+                &mut stderr,
+                &StubEngine,
+            ),
+            ExitStatus::Internal
+        );
+
+        let directory = tempfile::tempdir().unwrap();
+        let input = directory.path().join("source.json");
+        let output = directory.path().join("contract.json");
+        fs::write(&input, "good").unwrap();
+        let mut failing_stdout = FailingWriter;
+        let mut stderr = Vec::new();
+        assert_eq!(
+            run_with_engine(
+                vec![
+                    OsString::from("xunlie"),
+                    OsString::from("compile"),
+                    input.clone().into_os_string(),
+                    OsString::from("--out"),
+                    output.into_os_string(),
+                ],
+                &mut failing_stdout,
+                &mut stderr,
+                &StubEngine,
+            ),
+            ExitStatus::Internal
+        );
+
+        fs::write(&input, "bad").unwrap();
+        let mut stdout = Vec::new();
+        let mut failing_stderr = FailingWriter;
+        assert_eq!(
+            run_with_engine(
+                vec![
+                    OsString::from("xunlie"),
+                    OsString::from("compile"),
+                    input.into_os_string(),
+                    OsString::from("--out"),
+                    directory.path().join("unused.json").into_os_string(),
+                ],
+                &mut stdout,
+                &mut failing_stderr,
+                &StubEngine,
+            ),
+            ExitStatus::Internal
+        );
+    }
+
+    #[test]
+    fn human_rendering_rejects_incomplete_success_and_prints_diagnostics() {
+        let mut missing_output = success_output("compile");
+        missing_output.output = None;
+        assert!(write_success(&mut Vec::new(), OutputFormat::Human, &missing_output).is_err());
+
+        let mut missing_operator = success_output("variant");
+        missing_operator.operator = None;
+        assert!(write_success(&mut Vec::new(), OutputFormat::Human, &missing_operator).is_err());
+
+        let mut missing_variant = success_output("verify-variant");
+        missing_variant.variant = None;
+        assert!(write_success(&mut Vec::new(), OutputFormat::Human, &missing_variant).is_err());
+
+        let mut fallback = Vec::new();
+        write_success(
+            &mut fallback,
+            OutputFormat::Human,
+            &success_output("future-command"),
+        )
+        .unwrap();
+        assert!(
+            String::from_utf8(fallback)
+                .unwrap()
+                .contains("completed future-command")
+        );
+
+        let error = CommandError::new(
+            ExitStatus::CompileFailed,
+            "XUNLIE-E011",
+            "compile",
+            "fixture rejected",
+        )
+        .with_diagnostics(vec![Diagnostic::error("XUNLIE-TEST", "detail")]);
+        let mut rendered = Vec::new();
+        write_error(&mut rendered, OutputFormat::Human, &error).unwrap();
+        let rendered = String::from_utf8(rendered).unwrap();
+        assert!(rendered.contains("XUNLIE-E011"));
+        assert!(rendered.contains("XUNLIE-TEST: detail"));
     }
 }

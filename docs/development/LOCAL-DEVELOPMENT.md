@@ -53,7 +53,8 @@ cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 cargo nextest run --workspace --all-targets --all-features --locked
 cargo test --doc --workspace --all-features --locked
 cargo deny --workspace --all-features --locked check advisories bans licenses sources
-cargo llvm-cov --workspace --all-features --all-targets --locked --fail-under-lines 75
+cargo llvm-cov --workspace --exclude xtask --all-features --all-targets --locked --branch --fail-under-lines 90
+python scripts/check_lcov_thresholds.py coverage/lcov.info quality/quality-plan.json
 cargo mutants --in-place --no-shuffle --minimum-test-timeout 20
 ```
 
@@ -71,7 +72,7 @@ cambia de forma intencional, se actualiza el lockfile por separado y se revisa s
 | `cargo-deny` | Ubuntu 24.04 | advisories, licencias, versiones y fuentes |
 | `codeql-rust` | Ubuntu 24.04 | análisis estático de seguridad con consultas extendidas |
 | `msrv-1.85.0` | Ubuntu 24.04 | compatibilidad con la versión mínima de Rust declarada |
-| `coverage` | Ubuntu 24.04 | cobertura de líneas mínima del 75 % y artefacto LCOV |
+| `coverage` | Ubuntu 24.04 | cobertura global del producto ≥90 % líneas/≥85 % ramas y artefacto LCOV |
 | `fuzz-source-parser` | Ubuntu 24.04 | campaña acotada de libFuzzer sobre el compilador de fuentes |
 | `mutation-certified-variants` | Ubuntu 24.04 | mutación dirigida de certificados y operadores M2 |
 
@@ -82,15 +83,17 @@ tests ni `cargo-deny`.
 
 ## Cobertura y fuzzing
 
-La cobertura se calcula sobre todo el workspace y todos sus targets. El 75 % es un piso de
-regresión, no una meta: un PR no debe añadir ramas críticas sin pruebas aunque el total permanezca
-por encima del umbral. Para generar el mismo informe que CI:
+La cobertura se calcula sobre todos los crates y targets de producto; `xtask` se excluye porque es
+herramienta de desarrollo. Los umbrales 90 % de líneas y 85 % de ramas se leen de
+`quality/quality-plan.json`. Siguen siendo evidencia de ejecución, no de suficiencia del oráculo.
+Para generar el mismo informe que CI:
 
 ```text
 rustup component add llvm-tools-preview
 cargo install cargo-llvm-cov --version 0.8.7 --locked
-cargo llvm-cov --workspace --all-features --all-targets --locked \
-  --lcov --output-path coverage/lcov.info --fail-under-lines 75
+cargo llvm-cov --workspace --exclude xtask --all-features --all-targets --locked \
+  --branch --lcov --output-path coverage/lcov.info --fail-under-lines 90
+python scripts/check_lcov_thresholds.py coverage/lcov.info quality/quality-plan.json
 ```
 
 El parser se somete a libFuzzer con un nightly fechado para que la entrada de CI sea reproducible.

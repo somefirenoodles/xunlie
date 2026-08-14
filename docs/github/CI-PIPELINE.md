@@ -34,7 +34,7 @@ Ejecuta en cada PR, push a `main` y bajo demanda:
 | Job | Evidencia |
 |---|---|
 | `msrv-1.85.0` | el workspace compila con la versión mínima declarada |
-| `coverage` | cobertura de líneas mínima del 75 % y reporte LCOV descargable |
+| `coverage` | cobertura global del producto ≥90 % líneas/≥85 % ramas y reporte LCOV descargable |
 | `fuzz-source-parser` | campaña libFuzzer acotada contra el límite público del compilador |
 | `mutation-certified-variants` | `cargo-mutants 27.1.0` exige que la suite detecte mutaciones en certificados y generación |
 

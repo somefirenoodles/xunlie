@@ -833,6 +833,159 @@ mod tests {
     }
 
     #[test]
+    fn operators_report_invalid_inputs_and_transform_fails_closed() {
+        let invalid_json = source("{not-json}");
+        let evaluations = JsonNormalizationOperator.evaluate(&invalid_json);
+        assert_eq!(evaluations.len(), 1);
+        assert_eq!(evaluations[0].status, PreconditionStatus::Failed);
+        assert!(JsonNormalizationOperator.transform(&invalid_json).is_err());
+
+        let multiple_sources = vec![
+            SourceDocument::new("memory://first", 0, PRETTY_SOURCE),
+            SourceDocument::new("memory://second", 1, PRETTY_SOURCE),
+        ];
+        let evaluations = ReverseIndependentAddsOperator.evaluate(&multiple_sources);
+        assert!(evaluations.iter().any(|item| {
+            item.id == "independent-adds.single-source" && item.status == PreconditionStatus::Failed
+        }));
+        assert!(
+            ReverseIndependentAddsOperator
+                .transform(&multiple_sources)
+                .is_err()
+        );
+        assert!(
+            ReverseIndependentAddsOperator
+                .transform(&invalid_json)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn unknown_builtin_and_invalid_baseline_are_rejected() {
+        let unknown = generate_builtin_variant(source(PRETTY_SOURCE), "test.unknown").unwrap_err();
+        assert_eq!(unknown.code(), "XUNLIE-VARIANT-UNKNOWN-OPERATOR");
+        assert!(unknown.to_string().contains("test.unknown"));
+
+        let invalid =
+            generate_certified_variant(Vec::new(), &JsonNormalizationOperator).unwrap_err();
+        assert_eq!(invalid.code(), "XUNLIE-VARIANT-INVALID-BASELINE");
+        assert_eq!(invalid.diagnostics()[0].code, "XUNLIE-SOURCE-EMPTY-SET");
+    }
+
+    #[derive(Debug)]
+    struct TransformFailureOperator;
+
+    impl VariantOperator for TransformFailureOperator {
+        fn identity(&self) -> VariantOperatorIdentity {
+            VariantOperatorIdentity::new("test.transform-failure", "1.0.0")
+        }
+
+        fn evaluate(&self, _sources: &[SourceDocument]) -> Vec<PreconditionEvaluation> {
+            vec![PreconditionEvaluation::passed(
+                "test.transform-ready",
+                "fixture transform may run",
+            )]
+        }
+
+        fn transform(&self, _sources: &[SourceDocument]) -> Result<Vec<SourceDocument>, String> {
+            Err("fixture transform failed".to_owned())
+        }
+    }
+
+    #[derive(Debug)]
+    struct InvalidOutputOperator;
+
+    impl VariantOperator for InvalidOutputOperator {
+        fn identity(&self) -> VariantOperatorIdentity {
+            VariantOperatorIdentity::new("test.invalid-output", "1.0.0")
+        }
+
+        fn evaluate(&self, _sources: &[SourceDocument]) -> Vec<PreconditionEvaluation> {
+            vec![PreconditionEvaluation::passed(
+                "test.invalid-output-ready",
+                "fixture transform may run",
+            )]
+        }
+
+        fn transform(&self, _sources: &[SourceDocument]) -> Result<Vec<SourceDocument>, String> {
+            Ok(source("{not-json}"))
+        }
+    }
+
+    #[test]
+    fn operator_failure_and_invalid_output_have_distinct_errors() {
+        let failed = generate_certified_variant(source(PRETTY_SOURCE), &TransformFailureOperator)
+            .unwrap_err();
+        assert_eq!(failed.code(), "XUNLIE-VARIANT-OPERATOR-FAILED");
+        assert!(failed.to_string().contains("fixture transform failed"));
+
+        let invalid =
+            generate_certified_variant(source(PRETTY_SOURCE), &InvalidOutputOperator).unwrap_err();
+        assert_eq!(invalid.code(), "XUNLIE-VARIANT-INVALID-OUTPUT");
+        assert_eq!(invalid.diagnostics()[0].code, "XUNLIE-SOURCE-INVALID-JSON");
+    }
+
+    #[test]
+    fn invalid_nested_certificate_is_reported_by_the_container() {
+        let original = certified(
+            generate_certified_variant(source(PRETTY_SOURCE), &JsonNormalizationOperator).unwrap(),
+        );
+        let mut value: serde_json::Value =
+            serde_json::from_str(&original.canonical_json().unwrap()).unwrap();
+        value["certificate"]["schemaVersion"] =
+            serde_json::Value::String("xunlie.equivalence-certificate/v999".to_owned());
+        let invalid: CertifiedVariant = serde_json::from_value(value).unwrap();
+
+        let error = invalid.validate().unwrap_err();
+        assert_eq!(error.code(), "XUNLIE-VARIANT-CERTIFICATE-INVALID");
+        assert!(
+            error
+                .diagnostics()
+                .iter()
+                .any(|item| item.code == "XUNLIE-CERTIFICATE-SCHEMA")
+        );
+    }
+
+    #[test]
+    fn verifier_rejects_unknown_mismatched_excluded_and_divergent_replay() {
+        let baseline = source(PRETTY_SOURCE);
+        let variant = certified(
+            generate_certified_variant(baseline.clone(), &JsonNormalizationOperator).unwrap(),
+        );
+
+        let mismatch = verify_certified_variant_with_operator(
+            baseline.clone(),
+            &variant,
+            &ReverseIndependentAddsOperator,
+        )
+        .unwrap_err();
+        assert_eq!(mismatch.code(), "XUNLIE-VARIANT-OPERATOR-MISMATCH");
+
+        let normalized = variant.sources().to_vec();
+        let excluded = verify_certified_variant_with_operator(
+            normalized,
+            &variant,
+            &JsonNormalizationOperator,
+        )
+        .unwrap_err();
+        assert_eq!(excluded.code(), "XUNLIE-VARIANT-REPLAY-EXCLUDED");
+
+        let alternate = source(&format!("\n{PRETTY_SOURCE}"));
+        let divergent =
+            verify_certified_variant_with_operator(alternate, &variant, &JsonNormalizationOperator)
+                .unwrap_err();
+        assert_eq!(divergent.code(), "XUNLIE-VARIANT-REPLAY-MISMATCH");
+
+        let mut value: serde_json::Value =
+            serde_json::from_str(&variant.canonical_json().unwrap()).unwrap();
+        value["certificate"]["operator"]["id"] =
+            serde_json::Value::String("test.unknown".to_owned());
+        let unsupported: CertifiedVariant = serde_json::from_value(value).unwrap();
+        let unknown = verify_certified_variant(baseline, &unsupported).unwrap_err();
+        assert_eq!(unknown.code(), "XUNLIE-VARIANT-UNKNOWN-OPERATOR");
+    }
+
+    #[test]
     fn tampered_variant_fails_deterministic_replay() {
         let baseline = source(PRETTY_SOURCE);
         let original = certified(

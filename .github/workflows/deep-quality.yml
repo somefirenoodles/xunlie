@@ -48,10 +48,16 @@ jobs:
         run: cargo install cargo-llvm-cov --version 0.8.7 --locked
       - name: Create coverage output directory
         run: mkdir -p coverage
+      - name: Test coverage evidence verifier
+        run: python3 -m unittest scripts/test_check_lcov_thresholds.py
       - name: Enforce line coverage and write LCOV
         run: >-
-          cargo llvm-cov --workspace --all-features --all-targets --locked
-          --lcov --output-path coverage/lcov.info --fail-under-lines 75
+          cargo llvm-cov --workspace --exclude xtask --all-features --all-targets --locked
+          --branch --lcov --output-path coverage/lcov.info --fail-under-lines 90
+      - name: Enforce normative line and branch thresholds
+        run: >-
+          python3 scripts/check_lcov_thresholds.py
+          coverage/lcov.info quality/quality-plan.json
       - name: Upload LCOV report
         if: always() && hashFiles('coverage/lcov.info') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

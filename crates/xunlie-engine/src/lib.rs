@@ -372,4 +372,49 @@ mod tests {
             "XUNLIE-CONTRACT-ARTIFACT-DIGEST-MISMATCH"
         );
     }
+
+    #[test]
+    fn empty_sources_invalid_identity_and_schema_fail_closed() {
+        let empty = compile_sources(Vec::new()).unwrap_err();
+        assert_eq!(empty.diagnostics()[0].code, "XUNLIE-SOURCE-EMPTY-SET");
+        assert_eq!(
+            empty.into_diagnostics()[0].message,
+            "at least one source document is required"
+        );
+
+        let invalid_identity = compile_sources(vec![SourceDocument::new("", 7, ADD)]).unwrap_err();
+        assert_eq!(
+            invalid_identity.diagnostics()[0].code,
+            "XUNLIE-SOURCE-INVALID-IDENTITY"
+        );
+
+        let unsupported = ADD.replace("xunlie.source/v1", "xunlie.source/v999");
+        let unsupported = compile_sources(vec![SourceDocument::new(
+            "memory://unsupported",
+            3,
+            &unsupported,
+        )])
+        .unwrap_err();
+        assert_eq!(
+            unsupported.diagnostics()[0].code,
+            "XUNLIE-SOURCE-UNSUPPORTED-SCHEMA"
+        );
+        assert_eq!(
+            unsupported.diagnostics()[0]
+                .primary
+                .as_ref()
+                .unwrap()
+                .source_position,
+            3
+        );
+    }
+
+    #[test]
+    fn source_document_accessors_and_display_are_stable() {
+        let source = SourceDocument::new("memory://fixture", 4, ADD);
+        assert_eq!(source.identity(), "memory://fixture");
+        assert_eq!(source.position(), 4);
+        assert_eq!(source.source(), ADD);
+        assert_eq!(source.to_string(), "memory://fixture@4");
+    }
 }

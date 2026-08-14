@@ -599,6 +599,35 @@ fn artifact_digest(
 mod tests {
     use super::*;
 
+    fn source(identity: &str, position: usize) -> SourceRecord {
+        SourceRecord {
+            identity: SourceIdentity::new(identity).unwrap(),
+            digest: Sha256Digest::of_bytes(identity),
+            position,
+        }
+    }
+
+    fn requirement(id: &str) -> Requirement {
+        Requirement::new(
+            RequirementId::new(id).unwrap(),
+            RequirementKind::Functional,
+            RequirementPriority::Must,
+            "Preserve the contract.",
+        )
+        .unwrap()
+    }
+
+    fn contract() -> ContractIr {
+        let requirement = requirement("REQ-1");
+        ContractIr::new(
+            ContractMetadata::default(),
+            vec![source("memory://first", 0), source("memory://second", 1)],
+            ResolutionPolicy::Strict,
+            BTreeMap::from([(requirement.id().clone(), requirement)]),
+        )
+        .unwrap()
+    }
+
     #[test]
     fn rejects_invalid_requirement_id() {
         assert_eq!(
@@ -633,6 +662,158 @@ mod tests {
             diagnostics
                 .iter()
                 .any(|diagnostic| diagnostic.code == "XUNLIE-CONTRACT-NO-SOURCES")
+        );
+    }
+
+    #[test]
+    fn scalar_identifiers_reject_every_invalid_class_and_round_trip() {
+        assert_eq!(SourceIdentity::new("  "), Err(SourceIdentityError::Empty));
+        assert_eq!(
+            SourceIdentity::new("memory://bad\nidentity"),
+            Err(SourceIdentityError::ControlCharacter)
+        );
+        let identity = SourceIdentity::new("memory://valid").unwrap();
+        assert_eq!(identity.to_string(), "memory://valid");
+        let encoded = serde_json::to_string(&identity).unwrap();
+        assert_eq!(
+            serde_json::from_str::<SourceIdentity>(&encoded).unwrap(),
+            identity
+        );
+
+        assert_eq!(RequirementId::new(""), Err(RequirementIdError::Empty));
+        assert_eq!(
+            RequirementId::new("R".repeat(129)),
+            Err(RequirementIdError::TooLong(129))
+        );
+        let id = RequirementId::new("REQ:valid/path_1.0").unwrap();
+        assert_eq!(id.to_string(), "REQ:valid/path_1.0");
+        let encoded = serde_json::to_string(&id).unwrap();
+        assert_eq!(serde_json::from_str::<RequirementId>(&encoded).unwrap(), id);
+        assert!(serde_json::from_str::<RequirementId>("\"bad id\"").is_err());
+    }
+
+    #[test]
+    fn requirement_accessors_and_attribute_validation_are_explicit() {
+        let mut requirement = requirement("REQ-1");
+        assert_eq!(requirement.id().as_str(), "REQ-1");
+        assert_eq!(requirement.statement(), "Preserve the contract.");
+        assert_eq!(requirement.kind(), RequirementKind::Functional);
+        assert_eq!(requirement.priority(), RequirementPriority::Must);
+        assert!(requirement.attributes().is_empty());
+
+        requirement
+            .attributes
+            .insert(" ".to_owned(), "value".to_owned());
+        assert_eq!(
+            requirement.validate().unwrap_err().code,
+            "XUNLIE-REQ-EMPTY-ATTRIBUTE"
+        );
+    }
+
+    #[test]
+    fn contract_validation_reports_schema_producer_and_digest_tampering() {
+        let original = contract();
+
+        let mut schema = original.clone();
+        schema.schema_version = "xunlie.contract/v999".to_owned();
+        assert!(
+            schema
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-CONTRACT-SCHEMA")
+        );
+
+        let mut producer = original.clone();
+        producer.producer.name.clear();
+        assert!(
+            producer
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-CONTRACT-PRODUCER")
+        );
+
+        let mut digest = original;
+        digest.content_digest = Sha256Digest::of_bytes("tampered");
+        let diagnostics = digest.validate().unwrap_err();
+        assert!(
+            diagnostics
+                .iter()
+                .any(|item| item.code == "XUNLIE-CONTRACT-DIGEST-MISMATCH")
+        );
+        assert!(
+            diagnostics
+                .iter()
+                .any(|item| item.code == "XUNLIE-CONTRACT-ARTIFACT-DIGEST-MISMATCH")
+        );
+    }
+
+    #[test]
+    fn contract_validation_reports_provenance_and_requirement_structure() {
+        let original = contract();
+
+        let mut duplicate_identity = original.clone();
+        duplicate_identity.sources[1].identity = duplicate_identity.sources[0].identity.clone();
+        assert!(
+            duplicate_identity
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-SOURCE-DUPLICATE-IDENTITY")
+        );
+
+        let mut duplicate_position = original.clone();
+        duplicate_position.sources[1].position = duplicate_position.sources[0].position;
+        assert!(
+            duplicate_position
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-SOURCE-DUPLICATE-POSITION")
+        );
+
+        let mut noncanonical = original.clone();
+        noncanonical.sources.swap(0, 1);
+        assert!(
+            noncanonical
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-SOURCE-NONCANONICAL-ORDER")
+        );
+
+        let mut mismatched_key = original;
+        let embedded = mismatched_key
+            .requirements
+            .remove(&RequirementId::new("REQ-1").unwrap())
+            .unwrap();
+        mismatched_key
+            .requirements
+            .insert(RequirementId::new("REQ-2").unwrap(), embedded);
+        assert!(
+            mismatched_key
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|item| item.code == "XUNLIE-CONTRACT-KEY-MISMATCH")
+        );
+    }
+
+    #[test]
+    fn contract_accessors_expose_the_canonical_state() {
+        let contract = contract();
+        assert_eq!(contract.resolution_policy(), ResolutionPolicy::Strict);
+        assert_eq!(contract.sources().len(), 2);
+        assert_eq!(contract.requirements().len(), 1);
+        assert_eq!(contract.schema_version(), CONTRACT_SCHEMA_VERSION);
+        assert_eq!(contract.content_digest().as_str().len(), 71);
+        assert_eq!(contract.artifact_digest().as_str().len(), 71);
+        assert!(
+            contract
+                .semantic_canonical_json()
+                .unwrap()
+                .contains("REQ-1")
         );
     }
 }
