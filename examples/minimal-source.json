@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "xunlie.source/v1",
+  "operations": [
+    {
+      "op": "add",
+      "requirement": {
+        "id": "REQ-F-001",
+        "kind": "functional",
+        "priority": "must",
+        "statement": "Preserve exact source provenance."
+      }
+    },
+    {
+      "op": "add",
+      "requirement": {
+        "id": "REQ-Q-001",
+        "kind": "quality",
+        "priority": "must",
+        "statement": "Equal semantic inputs produce an equal contract digest."
+      }
+    }
+  ]
+}

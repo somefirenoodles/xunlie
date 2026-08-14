@@ -4,9 +4,9 @@
   "asOf": "2026-08-13",
   "qualificationPolicy": "Observe on golden corpus and one previous release before a new semantic tool becomes blocking.",
   "tools": [
-    {"id": "TOOL-RUST", "name": "Rust 2024 stable toolchain", "purpose": "trusted core and CLI", "status": "selected", "pinPolicy": "rust-toolchain.toml exact channel after M1 bootstrap", "ownerRole": "Chief Architect", "source": "https://www.rust-lang.org/"},
+    {"id": "TOOL-RUST", "name": "Rust 1.97.1 toolchain", "purpose": "trusted core and CLI", "status": "blocking", "pinPolicy": "rust-toolchain.toml exact channel", "ownerRole": "Chief Architect", "source": "https://www.rust-lang.org/"},
     {"id": "TOOL-NEXTEST", "name": "cargo-nextest", "purpose": "test execution and machine reports", "status": "candidate", "pinPolicy": "locked cargo install via CI image", "ownerRole": "Quality Lead", "source": "https://github.com/nextest-rs/nextest"},
-    {"id": "TOOL-PROPTEST", "name": "proptest", "purpose": "property testing", "status": "candidate", "pinPolicy": "Cargo.lock", "ownerRole": "Quality Lead", "source": "https://github.com/proptest-rs/proptest"},
+    {"id": "TOOL-PROPTEST", "name": "proptest", "purpose": "property testing", "status": "selected", "pinPolicy": "Cargo.lock", "ownerRole": "Quality Lead", "source": "https://github.com/proptest-rs/proptest"},
     {"id": "TOOL-INSTA", "name": "insta", "purpose": "reviewed golden snapshots", "status": "candidate", "pinPolicy": "Cargo.lock", "ownerRole": "Quality Lead", "source": "https://github.com/mitsuhiko/insta"},
     {"id": "TOOL-MUTANTS", "name": "cargo-mutants", "purpose": "mutation adequacy", "status": "candidate", "pinPolicy": "locked CI tool image", "ownerRole": "Quality Lead", "source": "https://github.com/sourcefrog/cargo-mutants"},
     {"id": "TOOL-FUZZ", "name": "cargo-fuzz", "purpose": "parser and protocol fuzzing", "status": "candidate", "pinPolicy": "locked CI tool image", "ownerRole": "Security Lead", "source": "https://github.com/rust-fuzz/cargo-fuzz"},
@@ -20,4 +20,3 @@
     {"id": "TOOL-OTEL", "name": "OpenTelemetry", "purpose": "opt-in structured telemetry export", "status": "candidate", "pinPolicy": "Cargo.lock and protocol version", "ownerRole": "Chief Architect", "source": "https://opentelemetry.io/"}
   ]
 }
-

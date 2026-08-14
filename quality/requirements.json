@@ -11,7 +11,7 @@
       "acceptance": ["Cada fuente tiene URI o identidad, digest y posición.", "Una fuente inválida falla con diagnóstico estructurado sin ContractIR parcial utilizable."],
       "risk": "high",
       "ownerRole": "Product Owner",
-      "status": "proposed"
+      "status": "verified"
     },
     {
       "id": "REQ-F-002",
@@ -21,7 +21,7 @@
       "acceptance": ["El IR valida contra su esquema.", "Entradas semánticamente idénticas producen el mismo digest bajo la misma versión."],
       "risk": "critical",
       "ownerRole": "Product Owner",
-      "status": "proposed"
+      "status": "verified"
     },
     {
       "id": "REQ-F-003",
@@ -31,7 +31,7 @@
       "acceptance": ["Casos no ambiguos producen el contrato esperado.", "Contradicciones sin política producen estado conflict y diagnóstico de fuentes."],
       "risk": "critical",
       "ownerRole": "Chief Architect",
-      "status": "proposed"
+      "status": "verified"
     },
     {
       "id": "REQ-F-004",
@@ -131,7 +131,7 @@
       "acceptance": ["Vectores canónicos son idénticos en plataformas soportadas.", "Toda aleatoriedad controlada registra semilla y algoritmo."],
       "risk": "critical",
       "ownerRole": "Chief Architect",
-      "status": "proposed"
+      "status": "verified"
     },
     {
       "id": "REQ-Q-002",
@@ -201,7 +201,7 @@
       "acceptance": ["Fitness functions arquitectónicas pasan en cada PR.", "No existe deuda crítica sin ID, dueño y fecha."],
       "risk": "high",
       "ownerRole": "Chief Architect",
-      "status": "proposed"
+      "status": "verified"
     },
     {
       "id": "REQ-Q-009",
@@ -221,7 +221,7 @@
       "acceptance": ["Errores muestran causa, ubicación, reparación y código.", "JSON de salida está separado de logs y valida contra esquema."],
       "risk": "medium",
       "ownerRole": "Product Owner",
-      "status": "proposed"
+      "status": "verified"
     },
     {
       "id": "REQ-Q-011",
@@ -245,4 +245,3 @@
     }
   ]
 }
-
