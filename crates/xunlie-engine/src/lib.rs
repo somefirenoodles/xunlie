@@ -4,18 +4,29 @@
 
 use core::fmt;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use xunlie_domain::{
     ContractIr, ContractMetadata, Diagnostic, History, HistoryEvent, Operation, Precedence,
     ResolutionPolicy, Sha256Digest, SourceIdentity, SourceLocation, SourceRecord, resolve_history,
 };
 
+mod variant;
+
+pub use variant::{
+    BUILTIN_OPERATOR_IDS, BUILTIN_OPERATOR_VERSION, CERTIFIED_VARIANT_SCHEMA_VERSION,
+    CertifiedVariant, ExcludedVariant, JSON_NORMALIZATION_OPERATOR_ID, JsonNormalizationOperator,
+    REVERSE_INDEPENDENT_ADDS_OPERATOR_ID, ReverseIndependentAddsOperator, VariantError,
+    VariantGeneration, VariantOperator, generate_builtin_variant, generate_certified_variant,
+    verify_certified_variant, verify_certified_variant_with_operator,
+};
+
 /// Schema identifier accepted by the M1 JSON source compiler.
 pub const SOURCE_SCHEMA_VERSION: &str = "xunlie.source/v1";
 
 /// Exact source content plus caller-controlled identity and history position.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct SourceDocument {
     identity: String,
     position: usize,

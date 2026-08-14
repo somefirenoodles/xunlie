@@ -5,6 +5,8 @@ The `xunlie` binary is the stable automation boundary for the Xunlie core.
 ```text
 xunlie compile <input> --out <contract.json> [--format human|json]
 xunlie validate <contract.json> [--format human|json]
+xunlie variant <input> --operator <normalize-json|reverse-independent-adds> --out <variant.json> [--format human|json]
+xunlie verify-variant <input> <variant.json> [--format human|json]
 ```
 
 `compile` currently accepts `xunlie.source/v1` JSON. Source path separators are
@@ -17,6 +19,10 @@ the selected stream contains one `xunlie.cli.result/v1` object and no log text.
 Every successful result exposes `contentDigest` for semantic equivalence and
 `artifactDigest` for integrity of the complete persisted contract, including provenance.
 
+`variant` writes one `xunlie.certified-variant/v1` bundle containing transformed sources,
+its own integrity digest, and a nested `xunlie.equivalence-certificate/v1`. `verify-variant`
+recompiles the bundle and deterministically replays the recorded operator from the exact baseline.
+
 ## Stable exit codes
 
 | Code | Meaning |
@@ -27,6 +33,8 @@ Every successful result exposes `contentDigest` for semantic equivalence and
 | `11` | source compilation failed |
 | `12` | ContractIR JSON or invariants are invalid |
 | `13` | compiled output could not be written |
+| `14` | a variant was safely excluded because a precondition failed |
+| `15` | generation, certificate validation, or deterministic replay failed |
 | `70` | CLI infrastructure failed, including writing its own result |
 
 New failure classes receive new codes; existing meanings are not reassigned

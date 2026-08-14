@@ -12,10 +12,10 @@ historia ordenada de requisitos en un `ContractIR` canónico, versionado y verif
 fuente es inválida o una historia contiene un conflicto no resuelto, falla de forma cerrada y
 no produce un contrato parcial.
 
-Este es el primer incremento ejecutable. Incluye la ingesta JSON `xunlie.source/v1`, resolución
-determinista de operaciones `add`, `replace` y `revoke`, validación del contrato, dos digests
-SHA-256 y una CLI apta para uso humano o automatización. `contentDigest` identifica el significado
-del contrato; `artifactDigest` protege también su procedencia y metadatos.
+El incremento ejecutable incluye ingesta JSON `xunlie.source/v1`, resolución determinista de
+operaciones `add`, `replace` y `revoke`, validación del contrato y variantes certificadas de
+historias. `contentDigest` identifica el significado del contrato; `artifactDigest` protege
+también su procedencia y metadatos, y `certificateDigest` enlaza la prueba de equivalencia M2.
 
 > **Estado:** versión temprana anterior a `1.0`. El formato `xunlie.contract/v1` es ejecutable y está
 > probado, pero todavía puede evolucionar antes de `1.0.0`. Consulte el
@@ -29,11 +29,18 @@ Requiere Rust mediante `rustup`; el toolchain exacto se instala automáticamente
 ```console
 cargo run -p xunlie-cli -- compile examples/minimal-source.json --out contract.json
 cargo run -p xunlie-cli -- validate contract.json --format json
+cargo run -p xunlie-cli -- variant examples/independent-adds-source.json --operator reverse-independent-adds --out certified-variant.json --format json
+cargo run -p xunlie-cli -- verify-variant examples/independent-adds-source.json certified-variant.json --format json
 ```
 
 El primer comando escribe JSON canónico `xunlie.contract/v1`. El segundo valida tanto el esquema
 como sus invariantes y comprueba ambos digests. Los resultados correctos van a `stdout`, los
 errores a `stderr`, y los códigos de salida son estables.
+
+`variant` solo escribe un artefacto cuando sus precondiciones pasan y la historia transformada
+compila al mismo `contentDigest`. `verify-variant` vuelve a ejecutar el operador y compara fuentes,
+digests, evidencia y certificado. Consulta el diseño de
+[variantes certificadas](docs/architecture/CERTIFIED-VARIANTS.md).
 
 Para instalar la CLI desde un checkout local:
 
@@ -46,6 +53,8 @@ También hay binarios para Linux x86_64 y Windows x86_64 en
 [GitHub Releases](https://github.com/somefirenoodles/xunlie/releases/latest). Cada release incluye
 `SHA256SUMS` y provenance verificable; consulta la
 [guía de releases](docs/development/RELEASING.md) antes de confiar en un artefacto descargado.
+Las funciones M2 descritas aquí pertenecen a `Unreleased`: hasta el siguiente tag deben ejecutarse
+desde este checkout y no se presuponen presentes en los binarios de `v0.1.0`.
 
 Ejemplo mínimo de entrada:
 
@@ -70,15 +79,14 @@ Ejemplo mínimo de entrada:
 
 | Componente | Responsabilidad |
 |---|---|
-| `xunlie-domain` | ContractIR, digests, diagnósticos y resolución pura de historias |
-| `xunlie-engine` | Ingesta de fuentes y compilación sin IR parcial |
-| `xunlie-cli` | Comandos `compile` y `validate`, salida humana/JSON |
+| `xunlie-domain` | ContractIR, certificados, digests, diagnósticos y resolución pura |
+| `xunlie-engine` | Ingesta, compilación, operadores de variante y replay determinista |
+| `xunlie-cli` | Comandos `compile`, `validate`, `variant` y `verify-variant` |
 | `xunlie-testkit` | Builders y fixtures reutilizables |
 | `xtask` | Puerta local agregada de arquitectura, formato, lint y pruebas |
 
-El alcance siguiente es certificar transformaciones equivalentes de historias, ejecutar agentes
-en workspaces aislados y comparar los resultados pareados. Esas capacidades todavía no forman
-parte de este incremento.
+El alcance siguiente es ejecutar agentes en workspaces aislados y comparar los resultados
+pareados. Esas capacidades todavía no forman parte de este incremento.
 
 ## Calidad local
 

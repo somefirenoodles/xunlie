@@ -105,6 +105,8 @@ jobs:
           "$binary" --help >/dev/null
           "$binary" compile examples/minimal-source.json --out "$smoke_dir/contract.json" --format json >/dev/null
           "$binary" validate "$smoke_dir/contract.json" --format json >/dev/null
+          "$binary" variant examples/independent-adds-source.json --operator reverse-independent-adds --out "$smoke_dir/variant.json" --format json >/dev/null
+          "$binary" verify-variant examples/independent-adds-source.json "$smoke_dir/variant.json" --format json >/dev/null
       - name: Smoke test Windows binary
         if: runner.os == 'Windows'
         shell: pwsh
@@ -122,6 +124,12 @@ jobs:
 
           & $binary validate "$smokeDir/contract.json" --format json | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "xunlie validate smoke test failed" }
+
+          & $binary variant examples/independent-adds-source.json --operator reverse-independent-adds --out "$smokeDir/variant.json" --format json | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "xunlie variant smoke test failed" }
+
+          & $binary verify-variant examples/independent-adds-source.json "$smokeDir/variant.json" --format json | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "xunlie verify-variant smoke test failed" }
       - name: Package Linux archive
         if: runner.os == 'Linux'
         shell: bash

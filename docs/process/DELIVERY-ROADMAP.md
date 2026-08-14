@@ -29,6 +29,10 @@ Gate: G1 de requisitos y G2 para esta slice; cada PR pasa G3.
 
 Gate: G3 + revisión dirigida de RISK-001/RISK-002.
 
+Estado del corte vertical: implementado. Incluye dos operadores deterministas, certificado v1,
+replay independiente, exclusiones explicadas, vector golden, propiedades metamórficas y campaña de
+mutación dirigida. La aprobación formal G3 continúa requiriendo un revisor independiente.
+
 ## M3 — Protocolo y ejecución aislada (3–4 semanas)
 
 - protocolo JSONL, handshake y conformance kit;
@@ -73,4 +77,3 @@ Primero se construyen los mecanismos que pueden demostrar falsedad: resolvedor, 
 ## Estimación de capacidad
 
 Equipo mínimo razonable: 2 desarrolladores Rust/sistemas, 1 Quality/SDET con propiedades/fuzzing, participación de Architect/Security y Product. En un equipo menor, mantener al menos dos personas para independencia; si una sola persona construye, un revisor externo debe aprobar gates críticos.
-

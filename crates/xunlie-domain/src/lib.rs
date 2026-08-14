@@ -10,6 +10,7 @@ mod diagnostic;
 mod digest;
 mod ir;
 mod resolution;
+mod variant;
 
 pub use canonical::CanonicalizationError;
 pub use diagnostic::{Diagnostic, DiagnosticRelated, Severity, SourceLocation};
@@ -22,4 +23,9 @@ pub use ir::{
 pub use resolution::{
     Conflict, ConflictKind, History, HistoryEvent, Operation, Precedence, ResolutionAction,
     ResolutionDecision, ResolutionFailure, ResolutionPolicy, ResolvedContract, resolve_history,
+};
+pub use variant::{
+    CertifiedHistory, EQUIVALENCE_CERTIFICATE_SCHEMA_VERSION, EquivalenceCertificate,
+    EquivalenceProof, EquivalenceProofResult, PreconditionEvaluation, PreconditionStatus,
+    RECOMPILE_PROOF_METHOD, VariantOperatorIdentity,
 };
