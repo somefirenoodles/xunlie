@@ -1,0 +1,20 @@
+[package]
+name = "xunlie-engine"
+description = "Deterministic source ingestion and ContractIR compilation for Xunlie"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+xunlie-domain = { version = "0.1.0", path = "../xunlie-domain" }
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,1 @@
+{"schemaVersion":"xunlie.contract/v1","resolutionPolicy":"strict","requirements":{"REQ-F-002":{"id":"REQ-F-002","kind":"functional","priority":"must","statement":"Compile a canonical ContractIR."}}}
