@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "xunlie.quality.gate-record/v1",
+  "recordId": "GATE-G0-ONLINE-2026-08-13",
+  "planVersion": "0.1.0",
+  "gateId": "G0",
+  "candidate": "somefirenoodles/xunlie@304162bec22f3a032b4c442b655dbfa50286f75e",
+  "decision": "BLOCKED",
+  "controls": [
+    {"id": "CTRL-GOV-001", "result": "PASS", "evidence": ["docs/quality/SOFTWARE-QUALITY-PLAN.md", "quality/quality-plan.json"]},
+    {"id": "CTRL-GOV-002", "result": "BLOCKED", "evidence": ["quality/roles.json", "docs/process/ROLES-RACI.md"], "reason": "All operational roles use the same AI actor; author-approver independence is not feasible."},
+    {"id": "CTRL-REQ-001", "result": "PASS", "evidence": ["quality/requirements.json", "quality/traceability.json"]},
+    {"id": "CTRL-ARCH-001", "result": "PASS", "evidence": ["docs/architecture/ARCHITECTURE.md", "quality/architecture-rules.json"]},
+    {"id": "CTRL-REPO-001", "result": "BLOCKED", "evidence": ["quality/evidence/github-bootstrap.json", "docs/github/REPOSITORY-SETTINGS.md"], "reason": "Operational protection is active, but independent approvals, signed commits/tags and adversarial control tests are incomplete."},
+    {"id": "CTRL-DEC-001", "result": "BLOCKED", "evidence": ["quality/decisions.json", "docs/decisions/OPEN-DECISIONS.md"], "reason": "DEC-011 remains open and blocks G0."}
+  ],
+  "waivers": [],
+  "approver": null,
+  "note": "Online bootstrap is successful; independent G0 approval remains intentionally blocked."
+}
+

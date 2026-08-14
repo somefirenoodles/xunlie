@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "xunlie.quality.repository-evidence/v1",
+  "capturedAt": "2026-08-14T01:44:30Z",
+  "repository": {
+    "nameWithOwner": "somefirenoodles/xunlie",
+    "url": "https://github.com/somefirenoodles/xunlie",
+    "visibility": "PUBLIC",
+    "defaultBranch": "main",
+    "license": "MIT",
+    "issues": true,
+    "discussions": true,
+    "wiki": false,
+    "deleteBranchOnMerge": true,
+    "mergeMethods": ["squash"]
+  },
+  "security": {
+    "dependabotSecurityUpdates": "enabled",
+    "secretScanning": "enabled",
+    "secretScanningPushProtection": "enabled",
+    "privateVulnerabilityReporting": "enabled"
+  },
+  "ruleset": {
+    "id": 20826197,
+    "name": "main-protection",
+    "enforcement": "active",
+    "include": ["refs/heads/main"],
+    "bypassActors": [],
+    "currentUserCanBypass": "never",
+    "rules": ["deletion", "non_fast_forward", "required_linear_history", "pull_request", "required_status_checks"],
+    "requiredStatusChecks": ["validate-quality-system"],
+    "strictStatusChecks": true,
+    "requiredApprovals": 0,
+    "requireCodeOwnerReview": false,
+    "allowedMergeMethods": ["squash"]
+  },
+  "bootstrap": {
+    "commit": "304162bec22f3a032b4c442b655dbfa50286f75e",
+    "workflowRun": "https://github.com/somefirenoodles/xunlie/actions/runs/31761453729",
+    "workflowConclusion": "success",
+    "checkName": "validate-quality-system",
+    "directPushTest": {
+      "attemptedRef": "HEAD:main",
+      "result": "rejected",
+      "errorCode": "GH013",
+      "reasons": [
+        "Changes must be made through a pull request.",
+        "Required status check validate-quality-system is expected."
+      ]
+    }
+  },
+  "limitations": [
+    "No independent reviewer or second CODEOWNER exists.",
+    "Required signatures and tag ruleset are not active.",
+    "CodeQL is deferred until Rust product code exists.",
+    "This export is a repository-tracked snapshot, not a cryptographically signed GitHub API attestation."
+  ]
+}

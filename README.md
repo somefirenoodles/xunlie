@@ -1,5 +1,8 @@
 # Xunlie
 
+[![governance](https://github.com/somefirenoodles/xunlie/actions/workflows/governance.yml/badge.svg)](https://github.com/somefirenoodles/xunlie/actions/workflows/governance.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Xunlie, anteriormente **InvariantCI**, es un sistema de aseguramiento para ingeniería de software agéntica. Compila fuentes de requisitos en un contrato verificable, genera historias contractualmente equivalentes, ejecuta agentes en entornos aislados y bloquea una entrega cuando el resultado depende indebidamente del camino de especificación.
 
 Este repositorio comienza por su sistema de calidad. La regla es deliberada: ningún incremento de producto se considera terminado si no conserva arquitectura, responsabilidades, trazabilidad requisito-función y evidencia reproducible.
@@ -10,7 +13,9 @@ Este repositorio comienza por su sistema de calidad. La regla es deliberada: nin
 - Estado de la baseline: propuesta para aprobación (`0.1.0`).
 - Código de producto: aún no iniciado.
 - Calidad como código: activa para documentación, arquitectura y trazabilidad.
-- Publicación objetivo: repositorio público `somefirenoodles/xunlie` bajo licencia MIT.
+- Repositorio público: [somefirenoodles/xunlie](https://github.com/somefirenoodles/xunlie), bajo licencia MIT.
+- Protección operativa: PR, historia lineal, check de gobierno obligatorio y cero bypass.
+- Independencia de aprobación: pendiente; G0 continúa bloqueado por DEC-011.
 
 ## Mapa del repositorio
 
