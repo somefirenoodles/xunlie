@@ -26,11 +26,12 @@ El ruleset de rama con ID `20826197` está en enforcement `active`, sin bypass:
 - descarta aprobaciones obsoletas tras nuevos commits;
 - exige resolver todas las conversaciones;
 - exige que la rama esté actualizada con `main` antes de integrar;
-- actualmente requiere el check `validate-quality-system`.
+- requiere los checks bloqueantes enumerados abajo.
 
-La lista de checks se amplía después de que los nombres nuevos hayan aparecido y pasado en una PR.
-Los checks objetivo de este incremento son:
+La lista se amplía solo después de que un nombre nuevo haya aparecido y pasado en una PR. Los checks
+obligatorios actuales son:
 
+- `validate-quality-system`;
 - `rustfmt-and-clippy`;
 - `tests-ubuntu-24.04`;
 - `tests-windows-2025`;
@@ -38,7 +39,8 @@ Los checks objetivo de este incremento son:
 - `codeql-rust`;
 - `msrv-1.85.0`;
 - `coverage`;
-- `fuzz-source-parser`.
+- `fuzz-source-parser`;
+- `mutation-certified-variants`.
 
 No se configura como obligatorio un nombre inexistente: primero se ejecuta el workflow, después se
 verifica la evidencia y finalmente se actualiza el ruleset.
