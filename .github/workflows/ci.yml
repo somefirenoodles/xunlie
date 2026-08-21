@@ -73,7 +73,7 @@ jobs:
           rustc --version --verbose
           cargo --version --verbose
       - name: Install pinned nextest runner
-        uses: taiki-e/install-action@82cd3e7658a6f96c86c0234aeeda1748937cb0a1 # v2.85.13
+        uses: taiki-e/install-action@5b4d68e2e660441203ab128a23676f1e4faf1532 # v2.86.3
         with:
           tool: cargo-nextest@0.9.143
       - name: Run workspace tests with nextest
